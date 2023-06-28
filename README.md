@@ -1,7 +1,6 @@
 # CmlLib.Core.Installer.Forge
 ## Minecraft Forge Installer
 <img src='https://raw.githubusercontent.com/CmlLib/CmlLib.Core/master/icon.png' width=128>
-[![Discord](https://img.shields.io/discord/795952027443527690?label=discord\&logo=discord\&style=for-the-badge)](https://discord.gg/cDW2pvwHSc)
 
 This is the official package for installing Forge for the CmlLib.Core library. 
 ## Features 
