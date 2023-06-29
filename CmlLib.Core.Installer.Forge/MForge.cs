@@ -22,8 +22,7 @@ public class MForge
 
     public async Task<string> Install(string mcVersion, string forgeVersion, bool AlwaysUpdate = false)
     {
-        var version_jar = minecraftPath.GetVersionJarPath(mcVersion); // get vanilla jar file
-        if (!File.Exists(version_jar))
+        if (!File.Exists(minecraftPath.GetVersionJarPath(mcVersion)))
             await launcher.CheckAndDownloadAsync(launcher.GetVersion(mcVersion)); //install vanilla version
         JavaPath = launcher.GetJavaPath(await launcher.GetVersionAsync(mcVersion));
 

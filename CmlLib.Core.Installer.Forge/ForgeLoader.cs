@@ -122,7 +122,7 @@ namespace CmlLib.Core.Installer.Forge
 
                 var outputs = item["outputs"] as JObject;
                 if (outputs == null || !checkProcessorOutputs(outputs, mapData))
-                    if (item["sides"] == null || (item["sides"] as JArray)[0].ToString() == "client") //skip server side
+                    if (item["sides"] == null || (item["sides"] as JArray)![0].ToString() == "client") //skip server side
                         startProcessor(item, mapData, install_folder);
 
             }
