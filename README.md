@@ -33,16 +33,17 @@ var path = new MinecraftPath(); // use default directory
 var launcher = new CMLauncher(path);
 
 // show launch progress to console
-launcher.FileChanged += (e) =>onsole.WriteLine($"[{e.FileKind.ToString()}] {e.FileName} - {e.ProgressedFileCount}/{e.TotalFileCount}");
+launcher.FileChanged += (e) => Console.WriteLine($"[{e.FileKind.ToString()}] {e.FileName} - {e.ProgressedFileCount}/{e.TotalFileCount}");
 launcher.ProgressChanged += (s, e) => Console.WriteLine($"{e.ProgressPercentage}%");
 
 //Initialize variables with the Minecraft version and the Forge version
-var mcVersion = "1.12.2";
+var mcVersion = "1.12.2"; 
 var forgeVersion = "14.23.5.2860";
 
 //Initialize MForge
 var forge = new MForge(path, launcher);
-var version_name = await forge.Install(mcVersion, forgeVersion); //OR var version_name = forge.Install(mcVersion, forgeVersion).GetAwaiter().GetResult();
+var version_name = await forge.Install(mcVersion, forgeVersion); //Use await in the asynchronous method
+//OR var version_name = forge.Install(mcVersion, forgeVersion).GetAwaiter().GetResult();
 
 //Start MineCraft
 var launchOption = new MLaunchOption
