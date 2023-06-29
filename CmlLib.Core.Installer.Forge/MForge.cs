@@ -8,6 +8,7 @@ using System.Security.Cryptography;
 using HtmlAgilityPack;
 using Directory = System.IO.Directory;
 using File = System.IO.File;
+using System.Net.NetworkInformation;
 
 namespace CmlLib.Core.Installer.Forge;
 
@@ -124,8 +125,9 @@ public class MForge
     private void extractMaven(string installerPath)
     {
         var org = Path.Combine(installerPath, "maven");
-        if (Directory.Exists(org))
-            IOUtil.CopyDirectory(org, minecraftPath.Library, true);
+        if (!Directory.Exists(org))
+            return;
+        IOUtil.CopyDirectory(org, minecraftPath.Library, true);
     }
 
     private void extractUniversal(string installerPath, string universalPath, string destinyName)
@@ -394,18 +396,5 @@ public class MForge
         using var resultStream = await httpResult.Content.ReadAsStreamAsync();
         using var fileStream = File.Create(Path.Combine(install_folder, "installer.jar"));
         resultStream.CopyTo(fileStream);
-    }
-
-    private static string CalculateMD5(string filename)
-    {
-        using var md5 = MD5.Create();
-        using var stream = File.OpenRead(filename);
-        var hash = md5.ComputeHash(stream);
-        return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
-    }
-
-    private void fireEvent(MFile kind, string name, int total, int progressed)
-    {
-        FileChanged?.Invoke(new DownloadFileChangedEventArgs(kind, this, name, total, progressed));
     }
 }
