@@ -23,5 +23,35 @@ Write this at the top of your source code:
 ```csharp
 using CmlLib.Core.Installer.Forge;
 using CmlLib.Core;
+using CmlLib.Core.Auth;
 ```
 ##Quick start
+```csharp
+var session = MSession.GetOfflineSession("USERNAME"); //https://github.com/CmlLib/CmlLib.Core/wiki/Login-and-Sessions
+//var path = new MinecraftPath("game_directory_path");
+var path = new MinecraftPath(); // use default directory
+
+var launcher = new CMLauncher(path);
+
+// show launch progress to console
+launcher.FileChanged += (e) =>onsole.WriteLine($"[{e.FileKind.ToString()}] {e.FileName} - {e.ProgressedFileCount}/{e.TotalFileCount}");
+launcher.ProgressChanged += (s, e) => Console.WriteLine($"{e.ProgressPercentage}%");
+
+//Initialize variables with the Minecraft version and the Forge version
+var mcVersion = "1.12.2";
+var forgeVersion = "14.23.5.2860";
+
+//Initialize MForge
+var forge = new IForge(path, launcher, launcher.GetJavaPath(launcher.GetVersion(mcVersion)));
+var version_name = await forge.Install(mcVersion, forgeVersion); OR var version_name = forge.Install(mcVersion, forgeVersion).GetAwaiter().GetResult();
+
+//Start MineCraft
+var launchOption = new MLaunchOption
+{
+  MaximumRamMb = 1024,
+  Session = MSession.GetOfflineSession("TaigoStudio"),
+};
+
+var process = launcher.CreateProcess(version_name, launchOption);
+process.Start();
+```csharp
