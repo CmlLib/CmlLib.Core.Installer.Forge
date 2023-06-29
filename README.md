@@ -55,3 +55,7 @@ var launchOption = new MLaunchOption
 var process = launcher.CreateProcess(version_name, launchOption);
 process.Start();
 ```
+You can disable the quick launch feature if the version is already installed: 
+```csharp
+var forge = new IForge(path, launcher, launcher.GetJavaPath(launcher.GetVersion(mcVersion)), false);
+```
