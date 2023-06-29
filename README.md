@@ -20,3 +20,8 @@ Install the [CmlLib.Core Nuget package](https://www.nuget.org/packages/CmlLib.Co
 or download the DLL files in [Releases](https://github.com/AlphaBs/CmlLib.Core/releases) and add references to them in your project.
 
 Write this at the top of your source code:
+```csharp
+using CmlLib.Core.Installer.Forge;
+using CmlLib.Core;
+```
+##Quick start
