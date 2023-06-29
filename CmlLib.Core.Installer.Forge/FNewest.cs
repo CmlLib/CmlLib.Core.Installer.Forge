@@ -31,8 +31,6 @@ namespace CmlLib.Core.Installer.Forge
 
             var version_jar = minecraftPath.GetVersionJarPath(mcVersion); // get vanilla jar file
             var install_folder = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName()); //create folder in temp
-            if (!File.Exists(version_jar))
-                await launcher.CheckAndDownloadAsync(launcher.GetVersion(mcVersion)); //install vanilla version
 
             await Parser.DownloadFile(mcVersion, forgeVersion, install_folder); //download forge version
             File.Copy(Path.Combine(install_folder, "installer.jar"), Path.Combine(install_folder, "version.zip"));
