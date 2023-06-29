@@ -43,7 +43,7 @@ var forgeVersion = "14.23.5.2860";
 
 //Initialize MForge
 var forge = new IForge(path, launcher, launcher.GetJavaPath(launcher.GetVersion(mcVersion)));
-var version_name = await forge.Install(mcVersion, forgeVersion); OR var version_name = forge.Install(mcVersion, forgeVersion).GetAwaiter().GetResult();
+var version_name = await forge.Install(mcVersion, forgeVersion); //OR var version_name = forge.Install(mcVersion, forgeVersion).GetAwaiter().GetResult();
 
 //Start MineCraft
 var launchOption = new MLaunchOption
