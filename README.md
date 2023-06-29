@@ -42,7 +42,7 @@ var mcVersion = "1.12.2";
 var forgeVersion = "14.23.5.2860";
 
 //Initialize MForge
-var forge = new IForge(path, launcher, launcher.GetJavaPath(launcher.GetVersion(mcVersion)));
+var forge = new IForge(path, launcher);
 var version_name = await forge.Install(mcVersion, forgeVersion); //OR var version_name = forge.Install(mcVersion, forgeVersion).GetAwaiter().GetResult();
 
 //Start MineCraft
@@ -57,5 +57,5 @@ process.Start();
 ```
 You can disable the quick launch feature if the version is already installed: 
 ```csharp
-var forge = new IForge(path, launcher, launcher.GetJavaPath(launcher.GetVersion(mcVersion)), false);
+var forge = new IForge(path, launcher, true);
 ```
