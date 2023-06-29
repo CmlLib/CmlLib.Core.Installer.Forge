@@ -27,7 +27,6 @@ using CmlLib.Core.Auth;
 ```
 ## Quick start
 ```csharp
-var session = MSession.GetOfflineSession("USERNAME"); //https://github.com/CmlLib/CmlLib.Core/wiki/Login-and-Sessions
 //var path = new MinecraftPath("game_directory_path");
 var path = new MinecraftPath(); // use default directory
 
@@ -49,7 +48,7 @@ var version_name = await forge.Install(mcVersion, forgeVersion); //OR var versio
 var launchOption = new MLaunchOption
 {
   MaximumRamMb = 1024,
-  Session = MSession.GetOfflineSession("TaigoStudio"),
+  Session = MSession.GetOfflineSession("USERNAME"),
 };
 
 var process = launcher.CreateProcess(version_name, launchOption);
