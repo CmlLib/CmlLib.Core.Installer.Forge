@@ -25,7 +25,7 @@ using CmlLib.Core.Installer.Forge;
 using CmlLib.Core;
 using CmlLib.Core.Auth;
 ```
-##Quick start
+## Quick start
 ```csharp
 var session = MSession.GetOfflineSession("USERNAME"); //https://github.com/CmlLib/CmlLib.Core/wiki/Login-and-Sessions
 //var path = new MinecraftPath("game_directory_path");
