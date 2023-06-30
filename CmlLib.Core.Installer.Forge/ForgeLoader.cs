@@ -2,8 +2,6 @@
 using CmlLib.Core.Files;
 using CmlLib.Utils;
 using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 
 namespace CmlLib.Core.Installer.Forge
@@ -17,7 +15,7 @@ namespace CmlLib.Core.Installer.Forge
         public event DownloadFileChangedHandler? FileChanged;
         public event EventHandler<string>? InstallerOutput;
 
-        public ForgeLoader(MinecraftPath minecraftPath, string JavaPath, CMLauncher launcher, 
+        public ForgeLoader(MinecraftPath minecraftPath, string JavaPath, CMLauncher launcher,
             IDownloader downloader, DownloadFileChangedHandler? FileChanged,
             EventHandler<string>? InstallerOutput)
         {
@@ -25,7 +23,7 @@ namespace CmlLib.Core.Installer.Forge
             this.JavaPath = JavaPath;
             this.downloader = downloader;
             this.launcher = launcher;
-            this.FileChanged = FileChanged; 
+            this.FileChanged = FileChanged;
             this.InstallerOutput = InstallerOutput;
         }
 
@@ -83,7 +81,7 @@ namespace CmlLib.Core.Installer.Forge
         }
 
         public Dictionary<string, string?> mapping(JObject data, string kind,
-            string minecraftJar, string installerPath)
+            string minecraftJar, string install_folder)
         {
             var dataMapping = new Dictionary<string, string?>();
             foreach (var item in data)
@@ -98,14 +96,15 @@ namespace CmlLib.Core.Installer.Forge
                 if (fullPath == value)
                 {
                     value = value.Trim('/');
-                    dataMapping.Add(key, Path.Combine(installerPath, value));
+                    dataMapping.Add(key, Path.Combine(install_folder, value));
                 }
                 else
                     dataMapping.Add(key, fullPath);
             }
 
-            dataMapping.Add("SIDE", "CLIENT");
+            dataMapping.Add("SIDE", "client");
             dataMapping.Add("MINECRAFT_JAR", minecraftJar);
+            dataMapping.Add("INSTALLER", Path.Combine(install_folder, "installer.jar"));
 
             return dataMapping;
         }
@@ -196,9 +195,6 @@ namespace CmlLib.Core.Installer.Forge
 
         public void startJava(string[] classpath, string mainClass, string[]? args, string install_folder)
         {
-            for (int i = 0; i < args.Length; i++)
-                if (args[i] == "{INSTALLER}")
-                    args[i] = args[i].Replace("{INSTALLER}", Path.Combine(install_folder, "installer.jar"));
             var arg =
                 $"-cp {IOUtil.CombinePath(classpath)} " +
                 $"{mainClass}";
@@ -210,7 +206,7 @@ namespace CmlLib.Core.Installer.Forge
             process.StartInfo = new ProcessStartInfo()
             {
                 FileName = JavaPath,
-                Arguments = arg.Replace("--side CLIENT", "--side client"), //fix installertools bug
+                Arguments = arg,
             };
 
             var p = new ProcessUtil(process);

@@ -35,7 +35,7 @@ public class MForge
         var newest = new FNewest(minecraftPath, JavaPath, launcher, downloader, FileChanged, InstallerOutput);
         return await newest.Install(mcVersion, forgeVersion, AlwaysUpdate);
     }
-  
+
     private void fireEvent(MFile kind, string name, int total, int progressed)
     {
         FileChanged?.Invoke(new DownloadFileChangedEventArgs(kind, this, name, total, progressed));

@@ -1,11 +1,4 @@
-﻿
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace CmlLib.Core.Installer.Forge
+﻿namespace CmlLib.Core.Installer.Forge
 {
     public class Func
     {

@@ -1,12 +1,7 @@
 ﻿using CmlLib.Core.Downloader;
 using ICSharpCode.SharpZipLib.Zip;
 using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CmlLib.Core.Installer.Forge
 {
@@ -39,7 +34,7 @@ namespace CmlLib.Core.Installer.Forge
 
             var version_jar = minecraftPath.GetVersionJarPath(mcVersion); // get vanilla jar file
             var install_folder = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName()); //create folder in temp
-          
+
             await Parser.DownloadFile(mcVersion, forgeVersion, install_folder); //download forge version
             File.Copy(Path.Combine(install_folder, "installer.jar"), Path.Combine(install_folder, "version.zip"));
             new FastZip().ExtractZip(Path.Combine(install_folder, "version.zip"), install_folder, null); //unzip version
@@ -61,7 +56,7 @@ namespace CmlLib.Core.Installer.Forge
             setupFolderLegacy(mcVersion, forgeVersion, install_folder, version_name, version.ToString()); //copy version.json and forge.jar
 
             //########################AD URL##############################
-            Process.Start(Parser.getAdUrl()); //We support Forge developers!
+            Process.Start(new ProcessStartInfo(Parser.getAdUrl()) { UseShellExecute = true });
             //########################AD URL##############################
 
             await launcher.GetAllVersionsAsync(); //update version list

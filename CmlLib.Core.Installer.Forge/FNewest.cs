@@ -47,7 +47,7 @@ namespace CmlLib.Core.Installer.Forge
             setupFolder(mcVersion, forgeVersion, install_folder, version.ToString()); //copy version.json and forge.jar
 
             //########################AD URL##############################
-            Process.Start(Parser.getAdUrl()); //We support Forge developers!
+            Process.Start(new ProcessStartInfo(Parser.getAdUrl()) { UseShellExecute = true });
             //########################AD URL##############################
 
             await launcher.GetAllVersionsAsync(); //update version list
