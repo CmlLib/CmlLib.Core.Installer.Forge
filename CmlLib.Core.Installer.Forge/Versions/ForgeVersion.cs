@@ -1,4 +1,4 @@
-﻿namespace CmlLib.Core.Installer.Forge;
+﻿namespace CmlLib.Core.Installer.Forge.Versions;
 
 public class ForgeVersion
 {
@@ -6,6 +6,8 @@ public class ForgeVersion
     public string? ForgeVersionName { get; set; }
     public string? Time { get; set; }
     public IEnumerable<ForgeVersionFile>? Files { get; set; }
+    public bool IsLatestVersion { get; set; }
+    public bool IsRecommendedVersion { get; set; }
 
     public ForgeVersionFile? GetInstallerFile()
     {

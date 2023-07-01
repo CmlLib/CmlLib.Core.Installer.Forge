@@ -1,6 +1,6 @@
 ﻿using HtmlAgilityPack;
 
-namespace CmlLib.Core.Installer.Forge;
+namespace CmlLib.Core.Installer.Forge.Versions;
 
 public class ForgeVersionLoader
 {
@@ -34,13 +34,27 @@ public class ForgeVersionLoader
         foreach (var td in tds)
         {
             if (td.HasClass("download-version"))
+            {
                 version.ForgeVersionName = td.InnerText.Trim();
+                checkVersionPromo(td, version);
+            }
             if (td.HasClass("download-time"))
                 version.Time = td.InnerText.Trim();
             if (td.HasClass("download-files"))
                 version.Files = getForgeVersionFiles(td);
         }
         return version;
+    }
+
+    private void checkVersionPromo(HtmlNode node, ForgeVersion version)
+    {
+        foreach (var child in node.Descendants())
+        {
+            if (child.HasClass("promo-latest"))
+                version.IsLatestVersion = true;
+            if (child.HasClass("promo-recommended"))
+                version.IsRecommendedVersion = true;
+        }
     }
 
     private IEnumerable<ForgeVersionFile> getForgeVersionFiles(HtmlNode node)
