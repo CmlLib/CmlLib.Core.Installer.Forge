@@ -5,29 +5,59 @@ public class ForgeVersionNameResolver
 
     public string ResolveVersionName(string mcVersion, string forgeVersion)
     {
-        var midVersionStr = mcVersion.Split('.')[1];
-        if (string.IsNullOrEmpty(midVersionStr))
-            throw new FormatException();
+        var versionSplit = mcVersion.Split('.');
+        var major = int.Parse(versionSplit[0]);
+        var minor = int.Parse(versionSplit[1]);
 
-        switch (mcVersion)
+        return (major, minor) switch
         {
-            case "1.7.10":
-                return $"{mcVersion}-Forge{forgeVersion}-{mcVersion}";
-            case "1.8.9":
-            case "1.9.4":
-                return $"{mcVersion}-forge{mcVersion}-{forgeVersion}-{mcVersion}";
-            case "1.10":
-                return $"1.10-forge1.10-{forgeVersion}-1.10.0";
-            case "1.12.2":
-                return $"{mcVersion}-forge-{forgeVersion}";
-        }
-
-        var midVersion = int.Parse(midVersionStr);
-        return midVersion switch
-        {
-            <= 7 => $"{mcVersion}-Forge{forgeVersion}",
-            <= 12 => $"{mcVersion}-forge{mcVersion}-{forgeVersion}",
-            _ => $"{mcVersion}-forge-{forgeVersion}"
+            (1, <= 6) => $"{mcVersion}-Forge{forgeVersion}", // oldest version ~ 1.6.*
+            (1, <= 12) => resolve172(mcVersion, forgeVersion), // 1.7.2 ~ 1.12.2
+            _ => $"{mcVersion}-forge-{forgeVersion}" // 1.13.* ~ latest version
         };
+    }
+
+    // 1.7.2 ~ 1.12.2 is just chaos
+    private string resolve172(string m, string f)
+    {
+        return (m, f) switch
+        {
+            ("1.7.2", _) => $"1.7.2-Forge{f}-mc172",
+            ("1.7.10-pre4", _) => $"1.7.10-pre4-Forge{f}-prerelease",
+            ("1.7.10", _) => $"1.7.10-Forge{f}-1.7.10",
+
+            ("1.8", _) => mf(m, f),
+            ("1.8.8", _) => mf(m, f),
+            ("1.8.9", _) => mfm(m, f),
+
+            ("1.9", "12.16.1.1938") => mfm0(m, f), 
+            ("1.9", _) => mf(m, f),
+            ("1.9.4", _) => mfm(m, f),
+
+            ("1.10", _) => mfm0(m, f),
+            ("1.10.2", _) or
+            ("1.11", _) or
+            ("1.11.2", _) or
+            ("1.12", _) or
+            ("1.12.1", _) => mf(m, f),
+            ("1.12.2", _) => $"1.12.2-forge-{f}",
+
+            _ => mf(m, f)
+        };
+    }
+
+    private string mf(string m, string f)
+    {
+        return $"{m}-forge{m}-{f}";
+    }
+
+    private string mfm(string m, string f)
+    {
+        return $"{m}-forge{m}-{f}-{m}";
+    }
+
+    private string mfm0(string m, string f)
+    {
+        return $"{m}-forge{m}-{f}-{m}.0";
     }
 }
