@@ -64,7 +64,8 @@ public class FLegacy : ForgeInstaller
 
         IOUtil.CreateDirectoryForFile(jarPath);
         IOUtil.CreateDirectoryForFile(jsonPath);
-        File.Copy(universalJarPath, jarPath, true);
+        if (File.Exists(universalJarPath))
+            File.Copy(universalJarPath, jarPath, true);
         File.WriteAllText(jsonPath, versionContent); //write version.json
     }
 }
