@@ -1,4 +1,5 @@
 ﻿using HtmlAgilityPack;
+using System;
 
 namespace CmlLib.Core.Installer.Forge.Versions;
 
@@ -23,26 +24,42 @@ public class ForgeVersionLoader
         document.LoadHtml(html);
         return document.DocumentNode
             .SelectNodes("//html[1]//body[1]//main[1]//div[2]//div[2]//div[2]//table[1]//tbody[1]//tr")
-            .Select(node => getForgeVersion(node, mcVersion));
+            .Select(node => getForgeVersion(node, mcVersion))
+            .Where(node => node != null)!;
     }
 
-    private ForgeVersion getForgeVersion(HtmlNode node, string mcVersion)
+    private ForgeVersion? getForgeVersion(HtmlNode node, string mcVersion)
     {
-        var version = new ForgeVersion();
-        version.MinecraftVersionName = mcVersion;
+        string? forgeVersion = null;
+        string? time = null;
+        IEnumerable<ForgeVersionFile>? files = null;
+
         var tds = node.Descendants("td");
+        HtmlNode? versionNode = null;
         foreach (var td in tds)
         {
             if (td.HasClass("download-version"))
             {
-                version.ForgeVersionName = td.InnerText.Trim();
-                checkVersionPromo(td, version);
+                forgeVersion = td.InnerText.Trim();
+                versionNode = td;
             }
             if (td.HasClass("download-time"))
-                version.Time = td.InnerText.Trim();
+                time = td.InnerText.Trim();
             if (td.HasClass("download-files"))
-                version.Files = getForgeVersionFiles(td);
+                files = getForgeVersionFiles(td);
         }
+
+        if (string.IsNullOrEmpty(forgeVersion))
+            return null;
+
+        var version = new ForgeVersion(mcVersion, forgeVersion)
+        {
+            Time = time,
+            Files = files
+        };
+        if (versionNode != null)
+            checkVersionPromo(versionNode, version);
+
         return version;
     }
 

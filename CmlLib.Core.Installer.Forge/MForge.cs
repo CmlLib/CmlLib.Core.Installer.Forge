@@ -1,43 +1,154 @@
-﻿#pragma warning disable CS8601
-using CmlLib.Core.Downloader;
-
+﻿using CmlLib.Core.Downloader;
+using CmlLib.Core.Installer.Forge.Installers;
+using CmlLib.Core.Installer.Forge.Versions;
+using System.Diagnostics;
 
 namespace CmlLib.Core.Installer.Forge;
 
 public class MForge
 {
-    private readonly MinecraftPath minecraftPath;
-    private string JavaPath;
-    private CMLauncher launcher;
-    private readonly IDownloader downloader;
+    public static readonly string ForgeAdUrl =
+        "https://adfoc.us/serve/sitelinks/?id=271228&url=https://maven.minecraftforge.net/";
+
+    private readonly HttpClient _httpClient;
+    private readonly MinecraftPath _minecraftPath;
+    private readonly CMLauncher _launcher;
+    private readonly IDownloader _downloader;
+    private readonly IForgeVersionNameResolver _versionNameResolver;
+    
+    public string? JavaPath { get; set; }
     public event DownloadFileChangedHandler? FileChanged;
     public event EventHandler<string>? InstallerOutput;
 
-    public MForge(MinecraftPath mc, CMLauncher launcher)
+    public MForge(CMLauncher launcher)
     {
-        minecraftPath = mc;
-        this.launcher = launcher;
-        downloader = new SequenceDownloader();
+        _httpClient = new HttpClient();
+        _minecraftPath = launcher.MinecraftPath;
+        _launcher = launcher;
+        _downloader = new SequenceDownloader();
+        _versionNameResolver = new ForgeVersionNameResolver();
     }
 
-    public async Task<string> Install(string mcVersion, string forgeVersion, bool AlwaysUpdate = false)
+    public async Task<string> Install(string mcVersion, bool forceUpdate = false)
     {
-        if (!File.Exists(minecraftPath.GetVersionJarPath(mcVersion)))
-            await launcher.CheckAndDownloadAsync(launcher.GetVersion(mcVersion)); //install vanilla version
-        JavaPath = launcher.GetJavaPath(await launcher.GetVersionAsync(mcVersion));
+        var versionLoader = new ForgeVersionLoader(_httpClient);
+        var versions = await versionLoader.GetForgeVersions(mcVersion);
+        var bestVersion =
+            versions.FirstOrDefault(v => v.IsRecommendedVersion) ??
+            versions.FirstOrDefault(v => v.IsLatestVersion) ??
+            versions.FirstOrDefault() ??
+            throw new InvalidOperationException("Cannot find any version");
 
-        if (Func.IsOldType(mcVersion))
+        return await Install(bestVersion, forceUpdate);
+    }
+
+    public async Task<string> Install(string mcVersion, string forgeVersion, bool forceUpdate = false)
+    {
+        var versionLoader = new ForgeVersionLoader(_httpClient);
+        var versions = await versionLoader.GetForgeVersions(mcVersion);
+
+        var foundVersion = versions.FirstOrDefault(v => v.ForgeVersionName == forgeVersion) ??
+            throw new InvalidOperationException("Cannot find version name " + forgeVersion);
+        return await Install(foundVersion, forceUpdate);
+    }
+
+    public async Task<string> Install(ForgeVersion forgeVersion, bool forceUpdate)
+    {
+        var versionName = _versionNameResolver.Resolve(
+            forgeVersion.MinecraftVersionName, 
+            forgeVersion.ForgeVersionName);
+
+        if (checkVersionInstalled(versionName) && !forceUpdate)
+            return versionName;
+
+        await checkAndDownloadVanillaVersion(forgeVersion.MinecraftVersionName);
+        var javaPath = await getJavaPath(forgeVersion.MinecraftVersionName);
+        //var javaPath = "java";
+
+        ForgeInstaller installer;
+        if (isOldType(forgeVersion.MinecraftVersionName))
+            installer = new FLegacy(_minecraftPath, javaPath, _downloader);
+        else
+            installer = new FNewest(_minecraftPath, javaPath, _downloader);
+
+        var progress = new Progress<DownloadFileChangedEventArgs>(e => FileChanged?.Invoke(e));
+        installer.InstallerOutput += (s, e) => InstallerOutput?.Invoke(this, e);
+        await installer.Install(forgeVersion, versionName, progress);
+
+        showAd();
+        while (true)
         {
-            var legacy = new FLegacy(minecraftPath, JavaPath, launcher, downloader, FileChanged, InstallerOutput);
-            return await legacy.Install(mcVersion, forgeVersion, AlwaysUpdate);
+            try
+            {
+                await _launcher.GetAllVersionsAsync();
+                break;
+            }
+            catch(Exception e)
+            {
+                Console.WriteLine(e.ToString());
+            }
+        }
+        return versionName;
+    }
+
+    private async Task checkAndDownloadVanillaVersion(string mcVersion)
+    {
+        if (!File.Exists(_minecraftPath.GetVersionJarPath(mcVersion)))
+        {
+            while (true)
+            {
+                try
+                {
+                    var version = await _launcher.GetVersionAsync(mcVersion);
+                    await _launcher.CheckAndDownloadAsync(version);
+
+                    break;
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.ToString());
+                }
+            }
+        }
+    }
+
+    private bool checkVersionInstalled(string versionName)
+    {
+        //var versions = await _launcher.GetAllVersionsAsync();
+        //return versions.Any(v => v.Name == versionName);
+        return File.Exists(_minecraftPath.GetVersionJarPath(versionName));
+    }
+
+    private async Task<string> getJavaPath(string versionName)
+    {
+        if (!string.IsNullOrEmpty(JavaPath) && File.Exists(JavaPath))
+            return JavaPath;
+
+        while (true)
+        {
+            try
+            {
+
+                var version = await _launcher.GetVersionAsync(versionName);
+                var javaPath = _launcher.GetJavaPath(version);
+                if (string.IsNullOrEmpty(javaPath) || !File.Exists(javaPath))
+                    throw new InvalidOperationException("Cannot find any java binary. Set java binary path");
+                return javaPath;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.ToString());
+            }
         }
 
-        var newest = new FNewest(minecraftPath, JavaPath, launcher, downloader, FileChanged, InstallerOutput);
-        return await newest.Install(mcVersion, forgeVersion, AlwaysUpdate);
     }
 
-    private void fireEvent(MFile kind, string name, int total, int progressed)
+    private static bool isOldType(string mcVersion) => Convert.ToInt32(mcVersion.Split('.')[1]) < 12 ? true : false;
+
+    private void showAd()
     {
-        FileChanged?.Invoke(new DownloadFileChangedEventArgs(kind, this, name, total, progressed));
+        //########################AD URL##############################
+        //Process.Start(new ProcessStartInfo(ForgeAdUrl) { UseShellExecute = true });
+        //########################AD URL##############################
     }
 }

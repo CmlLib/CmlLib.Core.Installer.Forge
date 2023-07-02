@@ -1,0 +1,70 @@
+﻿using CmlLib.Core.Downloader;
+using CmlLib.Core.Installer.Forge.Versions;
+using CmlLib.Utils;
+using ICSharpCode.SharpZipLib.Zip;
+using Newtonsoft.Json.Linq;
+
+namespace CmlLib.Core.Installer.Forge.Installers;
+
+/* 1.7.10 - 1.11.2 */
+public class FLegacy : ForgeInstaller
+{
+    public FLegacy(
+        MinecraftPath minecraftPath,
+        string javaPath,
+        IDownloader downloader) :
+        base(minecraftPath, javaPath, downloader)
+    {
+    }
+
+    protected override async Task Install(
+        ForgeVersion forgeVersion, 
+        string installerDir, 
+        string versionName,
+        IProgress<DownloadFileChangedEventArgs>? progress)
+    {
+        var vanillaJarPath = MinecraftPath.GetVersionJarPath(forgeVersion.MinecraftVersionName); // get vanilla jar file
+
+        var installProfilePath = Path.Combine(installerDir, "install_profile.json");
+        if (!File.Exists(installProfilePath))
+            throw new InvalidOperationException("The installer does not have install_profile.json file");
+
+        var installProfileContent = File.ReadAllText(installProfilePath);
+        var installProfile = JObject.Parse(installProfileContent);
+
+        var version = installProfile["versionInfo"] as JObject;
+        var versionId = version?["id"]?.ToString();
+        if (string.IsNullOrEmpty(versionId))
+            throw new InvalidOperationException("install_profile.json does not have id property");
+
+        var installerData = installProfile["data"] as JObject;
+        var mapData = installerData == null ? 
+            new Dictionary<string, string?>() : 
+            MapProcessorData(installerData, "client", vanillaJarPath, installerDir);
+
+        var destPath = (installProfile["install"] as JObject)?["path"]?.ToString();
+        var universalPath = (installProfile["install"] as JObject)?["filePath"]?.ToString();
+
+        if (string.IsNullOrEmpty(universalPath)) 
+            throw new InvalidOperationException("filePath property in installer was null");
+        if (string.IsNullOrEmpty(destPath)) 
+            throw new InvalidOperationException("path property in installer was null");
+
+        ExtractUniversal(installerDir, universalPath, destPath); // old installer
+        await CheckAndDownloadLibraries(installProfile["libraries"] as JArray, progress); //install libs
+        StartProcessors(installProfile["processors"] as JArray, mapData);
+        setupFolderLegacy(installerDir, versionId, installProfileContent); //copy version.json and forge.jar
+    }
+
+    private void setupFolderLegacy(string installDir, string versionName, string versionContent)
+    {
+        var jarPath = MinecraftPath.GetVersionJarPath(versionName);
+        var jsonPath = MinecraftPath.GetVersionJsonPath(versionName);
+        var universalJarPath = Path.Combine(installDir, $"{versionName}-universal.jar");
+
+        IOUtil.CreateDirectoryForFile(jarPath);
+        IOUtil.CreateDirectoryForFile(jsonPath);
+        File.Copy(universalJarPath, jarPath, true);
+        File.WriteAllText(jsonPath, versionContent); //write version.json
+    }
+}

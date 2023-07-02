@@ -2,8 +2,14 @@
 
 public class ForgeVersion
 {
-    public string? MinecraftVersionName { get; set; }
-    public string? ForgeVersionName { get; set; }
+    public ForgeVersion(string mcVersion, string forgeVersion)
+    {
+        this.MinecraftVersionName = mcVersion;
+        this.ForgeVersionName = forgeVersion;
+    }
+
+    public string MinecraftVersionName { get; }
+    public string ForgeVersionName { get; }
     public string? Time { get; set; }
     public IEnumerable<ForgeVersionFile>? Files { get; set; }
     public bool IsLatestVersion { get; set; }

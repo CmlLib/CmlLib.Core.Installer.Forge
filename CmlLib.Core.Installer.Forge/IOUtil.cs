@@ -6,6 +6,14 @@ namespace CmlLib.Utils
     {
         private const int DefaultBufferSize = 4096;
 
+        public static void CreateDirectoryForFile(string filepath)
+        {
+            var dir = Path.GetDirectoryName(filepath);
+            if (!string.IsNullOrEmpty(dir))
+                Directory.CreateDirectory(dir);
+        }
+
+
         public static string NormalizePath(string path)
         {
             return Path.GetFullPath(path)
@@ -106,34 +114,6 @@ namespace CmlLib.Utils
             {
                 return false;
             }
-        }
-
-        public static bool CheckFileValidation(string path, string? hash, bool checkHash)
-        {
-            if (!File.Exists(path))
-                return false;
-
-            if (!checkHash)
-                return true;
-            else
-                return CheckSHA1(path, hash);
-        }
-
-        public static async Task<bool> CheckFileValidationAsync(string path, string? hash, bool checkHash)
-        {
-            if (!File.Exists(path))
-                return false;
-
-            if (!checkHash)
-                return true;
-            else
-                return await Task.Run(() => CheckSHA1(path, hash)).ConfigureAwait(false);
-        }
-
-        public static bool CheckFileValidation(string path, string hash, long size)
-        {
-            var file = new FileInfo(path);
-            return file.Exists && file.Length == size && CheckSHA1(path, hash);
         }
 
         #region Async File IO
