@@ -1,9 +1,8 @@
 ﻿namespace CmlLib.Core.Installer.Forge.Versions;
 
-public class ForgeVersionNameResolver
+public class ForgeVersionNameResolver : IForgeVersionNameResolver
 {
-
-    public string ResolveVersionName(string mcVersion, string forgeVersion)
+    public string Resolve(string mcVersion, string forgeVersion)
     {
         var versionSplit = mcVersion.Split('.');
         var major = int.Parse(versionSplit[0]);

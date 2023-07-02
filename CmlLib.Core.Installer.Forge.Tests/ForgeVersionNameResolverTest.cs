@@ -36,7 +36,7 @@ public class ForgeVersionNameResolverTest
     public void Test(string mcVersion, string forgeVersion, string versionName)
     {
         var resolver = new ForgeVersionNameResolver();
-        var result = resolver.ResolveVersionName(mcVersion, forgeVersion);
+        var result = resolver.Resolve(mcVersion, forgeVersion);
         Assert.Equal(versionName, result);
     }
 }

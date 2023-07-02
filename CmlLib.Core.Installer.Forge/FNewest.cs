@@ -1,4 +1,5 @@
 ﻿using CmlLib.Core.Downloader;
+using CmlLib.Core.Installer.Forge.Versions;
 using ICSharpCode.SharpZipLib.Zip;
 using Newtonsoft.Json.Linq;
 using System.Diagnostics;
@@ -8,6 +9,7 @@ namespace CmlLib.Core.Installer.Forge
     /* 1.12.2 - 1.20.* */
     public class FNewest : ForgeLoader
     {
+        private readonly IForgeVersionNameResolver forgeVersionName = new ForgeVersionNameResolver();
         private readonly MinecraftPath minecraftPath;
         private readonly string JavaPath;
         private CMLauncher launcher;
@@ -26,8 +28,9 @@ namespace CmlLib.Core.Installer.Forge
         }
         public async Task<string> Install(string mcVersion, string forgeVersion, bool AlwaysUpdate = false)
         {
-            if (!AlwaysUpdate && Directory.Exists(Path.Combine(minecraftPath.Versions, GetForgeName(mcVersion, forgeVersion))))
-                return GetForgeName(mcVersion, forgeVersion); //the version is already installed
+            var versionName = forgeVersionName.Resolve(mcVersion, forgeVersion);
+            if (!AlwaysUpdate && Directory.Exists(Path.Combine(minecraftPath.Versions, versionName)))
+                return versionName; //the version is already installed
 
             var version_jar = minecraftPath.GetVersionJarPath(mcVersion); // get vanilla jar file
             var install_folder = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName()); //create folder in temp
@@ -51,20 +54,21 @@ namespace CmlLib.Core.Installer.Forge
             //########################AD URL##############################
 
             await launcher.GetAllVersionsAsync(); //update version list
-            return GetForgeName(mcVersion, forgeVersion);
+            return versionName;
         }
 
 
         private void setupFolder(string mcVersion, string forgeVersion, string install_folder, string JVersion)
         {
-            string version_folder = Path.Combine(minecraftPath.Versions, GetForgeName(mcVersion, forgeVersion));
+            var versionName = forgeVersionName.Resolve(mcVersion, forgeVersion);
+            string version_folder = Path.Combine(minecraftPath.Versions, versionName);
             if (Directory.Exists(version_folder))
                 Directory.Delete(version_folder, true); //remove version folder
             Directory.CreateDirectory(version_folder); //create version folder
-            File.WriteAllText(Path.Combine(version_folder, $"{GetForgeName(mcVersion, forgeVersion)}.json"), JVersion); //write version.json
+            File.WriteAllText(Path.Combine(version_folder, $"{versionName}.json"), JVersion); //write version.json
             var jar = Path.Combine(install_folder, $"maven\\net\\minecraftforge\\forge\\{mcVersion}-{forgeVersion}\\forge-{mcVersion}-{forgeVersion}.jar");
             if (File.Exists(jar)) //fix 1.17+ errors
-                File.Copy(jar, Path.Combine(version_folder, $"{GetForgeName(mcVersion, forgeVersion)}.jar")); //copy jar file
+                File.Copy(jar, Path.Combine(version_folder, $"{versionName}.jar")); //copy jar file
             Directory.Delete(install_folder, true); //remove temp folder
         }
 

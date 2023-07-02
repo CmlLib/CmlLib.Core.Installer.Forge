@@ -1,4 +1,5 @@
 ﻿using CmlLib.Core.Downloader;
+using CmlLib.Core.Installer.Forge.Versions;
 using ICSharpCode.SharpZipLib.Zip;
 using Newtonsoft.Json.Linq;
 using System.Diagnostics;
@@ -9,7 +10,7 @@ namespace CmlLib.Core.Installer.Forge
     /* 1.7.10 - 1.11.2 */
     public class FLegacy : ForgeLoader
     {
-
+        private readonly IForgeVersionNameResolver forgeVersionName = new ForgeVersionNameResolver();
         private readonly MinecraftPath minecraftPath;
         private readonly string JavaPath;
         private CMLauncher launcher;
@@ -29,8 +30,8 @@ namespace CmlLib.Core.Installer.Forge
 
         public async Task<string> Install(string mcVersion, string forgeVersion, bool AlwaysUpdate = false)
         {
-            if (!AlwaysUpdate && Directory.Exists(Path.Combine(minecraftPath.Versions, GetLegacyFolderName(mcVersion, forgeVersion))))
-                return $"{GetLegacyFolderName(mcVersion, forgeVersion)}";
+            if (!AlwaysUpdate && Directory.Exists(Path.Combine(minecraftPath.Versions, forgeVersionName.Resolve(mcVersion, forgeVersion))))
+                return $"{forgeVersionName.Resolve(mcVersion, forgeVersion)}";
 
             var version_jar = minecraftPath.GetVersionJarPath(mcVersion); // get vanilla jar file
             var install_folder = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName()); //create folder in temp
@@ -66,9 +67,7 @@ namespace CmlLib.Core.Installer.Forge
         private void setupFolderLegacy(string mcVersion, string forgeVersion, string install_folder, string version_name, string JVersion)
         {
             string version_folder = Path.Combine(minecraftPath.Versions, version_name);
-            var universal_jar = Convert.ToInt32(mcVersion.Split('.')[1]) < 10 ?
-                $"{GetLegacyForgeName(mcVersion, forgeVersion)}-universal.jar" :
-                $"{GetOldForgeName(mcVersion, forgeVersion)}-universal.jar";
+            var universal_jar = $"{forgeVersionName.Resolve(mcVersion, forgeVersion)}-universal.jar";
 
             if (Directory.Exists(version_folder))
                 Directory.Delete(version_folder, true); //remove version folder
