@@ -15,7 +15,7 @@ public class MForge
     private readonly CMLauncher _launcher;
     private readonly IDownloader _downloader;
     private readonly IForgeVersionNameResolver _versionNameResolver;
-    
+
     public string? JavaPath { get; set; }
     public event DownloadFileChangedHandler? FileChanged;
     public event EventHandler<string>? InstallerOutput;
@@ -55,7 +55,7 @@ public class MForge
     public async Task<string> Install(ForgeVersion forgeVersion, bool forceUpdate)
     {
         var versionName = _versionNameResolver.Resolve(
-            forgeVersion.MinecraftVersionName, 
+            forgeVersion.MinecraftVersionName,
             forgeVersion.ForgeVersionName);
 
         if (checkVersionInstalled(versionName) && !forceUpdate)
@@ -76,18 +76,7 @@ public class MForge
         await installer.Install(forgeVersion, versionName, progress);
 
         showAd();
-        while (true)
-        {
-            try
-            {
-                await _launcher.GetAllVersionsAsync();
-                break;
-            }
-            catch(Exception e)
-            {
-                Console.WriteLine(e.ToString());
-            }
-        }
+        await _launcher.GetAllVersionsAsync();
         return versionName;
     }
 
@@ -95,20 +84,8 @@ public class MForge
     {
         if (!File.Exists(_minecraftPath.GetVersionJarPath(mcVersion)))
         {
-            while (true)
-            {
-                try
-                {
-                    var version = await _launcher.GetVersionAsync(mcVersion);
-                    await _launcher.CheckAndDownloadAsync(version);
-
-                    break;
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e.ToString());
-                }
-            }
+            var version = await _launcher.GetVersionAsync(mcVersion);
+            await _launcher.CheckAndDownloadAsync(version);
         }
     }
 
@@ -116,12 +93,12 @@ public class MForge
     {
         //var versions = await _launcher.GetAllVersionsAsync();
         //return versions.Any(v => v.Name == versionName);
-        return File.Exists(_minecraftPath.GetVersionJarPath(versionName));
+        return File.Exists(_minecraftPath.GetVersionJsonPath(versionName));
     }
 
     private async Task<string> getJavaPath(string versionName)
     {
-        if (!string.IsNullOrEmpty(JavaPath) && File.Exists(JavaPath))
+        if (!string.IsNullOrEmpty(JavaPath))
             return JavaPath;
 
         while (true)
@@ -150,7 +127,7 @@ public class MForge
     private void showAd()
     {
         //########################AD URL##############################
-        //Process.Start(new ProcessStartInfo(ForgeAdUrl) { UseShellExecute = true });
+        Process.Start(new ProcessStartInfo(ForgeAdUrl) { UseShellExecute = true });
         //########################AD URL##############################
     }
 }

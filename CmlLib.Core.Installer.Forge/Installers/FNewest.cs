@@ -49,7 +49,7 @@ public class FNewest : ForgeInstaller
         IOUtil.CreateDirectoryForFile(versionJsonDest);
         await IOUtil.CopyFileAsync(versionJsonSource, versionJsonDest);
 
-        var jar = Path.Combine(installDir, $"maven\\net\\minecraftforge\\forge\\{mcVersion}-{forgeVersion}\\forge-{mcVersion}-{forgeVersion}.jar");
+        var jar = Path.Combine(installDir, $"maven/net/minecraftforge/forge/{mcVersion}-{forgeVersion}/forge-{mcVersion}-{forgeVersion}.jar");
         if (File.Exists(jar)) //fix 1.17+ 
         {
             var jarPath = MinecraftPath.GetVersionJarPath(versionName);
