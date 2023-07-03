@@ -53,14 +53,13 @@ public class FLegacy : ForgeInstaller
         ExtractUniversal(installerDir, universalPath, destPath); // old installer
         await CheckAndDownloadLibraries(installProfile["libraries"] as JArray, progress); //install libs
         StartProcessors(installProfile["processors"] as JArray, mapData);
-        setupFolderLegacy(installerDir, versionId, installProfileContent); //copy version.json and forge.jar
+        setupFolderLegacy(versionId, Path.Combine(installerDir, universalPath), version!.ToString()); //copy version.json and forge.jar
     }
 
-    private void setupFolderLegacy(string installDir, string versionName, string versionContent)
+    private void setupFolderLegacy(string versionName, string universalJarPath, string versionContent)
     {
         var jarPath = MinecraftPath.GetVersionJarPath(versionName);
         var jsonPath = MinecraftPath.GetVersionJsonPath(versionName);
-        var universalJarPath = Path.Combine(installDir, $"{versionName}-universal.jar");
 
         IOUtil.CreateDirectoryForFile(jarPath);
         IOUtil.CreateDirectoryForFile(jsonPath);

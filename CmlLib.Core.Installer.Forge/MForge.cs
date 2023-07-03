@@ -132,6 +132,8 @@ public class MForge
                 var version = await _launcher.GetVersionAsync(versionName);
                 var javaPath = _launcher.GetJavaPath(version);
                 if (string.IsNullOrEmpty(javaPath) || !File.Exists(javaPath))
+                    javaPath = _launcher.GetDefaultJavaPath();
+                if (string.IsNullOrEmpty(javaPath) || !File.Exists(javaPath))
                     throw new InvalidOperationException("Cannot find any java binary. Set java binary path");
                 return javaPath;
             }

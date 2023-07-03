@@ -5,8 +5,9 @@ using CmlLib.Core.Downloader;
 using System.ComponentModel;
 using SampleForgeInstaller;
 
-await new AllInstaller().InstallAll();
-return;
+//await new AllInstaller().InstallAll();
+//await new AllInstaller().InstallAndLaunch("1.8.9");
+//return;
 
 var httpClient = new HttpClient();
 var path = new MinecraftPath(); // use default directory

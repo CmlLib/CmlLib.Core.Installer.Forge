@@ -40,7 +40,7 @@ public class ForgeVersionLoader
         {
             if (td.HasClass("download-version"))
             {
-                forgeVersion = td.InnerText.Trim();
+                forgeVersion = td.InnerText.Trim().Split(' ')[0].Replace("\n", "").Replace("\r", "");
                 versionNode = td;
             }
             if (td.HasClass("download-time"))
