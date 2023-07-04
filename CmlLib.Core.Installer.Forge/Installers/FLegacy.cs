@@ -9,21 +9,14 @@ namespace CmlLib.Core.Installer.Forge.Installers;
 /* 1.7.10 - 1.11.2 */
 public class FLegacy : ForgeInstaller
 {
-    public FLegacy(
-        MinecraftPath minecraftPath,
-        string javaPath,
-        IDownloader downloader) :
-        base(minecraftPath, javaPath, downloader)
+    public FLegacy(string versionName, ForgeVersion forgeVersion) : 
+        base(versionName, forgeVersion)
     {
     }
 
-    protected override async Task Install(
-        ForgeVersion forgeVersion, 
-        string installerDir, 
-        string versionName,
-        IProgress<DownloadFileChangedEventArgs>? progress)
+    protected override async Task Install(string installerDir)
     {
-        var vanillaJarPath = MinecraftPath.GetVersionJarPath(forgeVersion.MinecraftVersionName); // get vanilla jar file
+        var vanillaJarPath = InstallOptions.MinecraftPath.GetVersionJarPath(ForgeVersion.MinecraftVersionName); // get vanilla jar file
 
         var installProfilePath = Path.Combine(installerDir, "install_profile.json");
         if (!File.Exists(installProfilePath))
@@ -51,15 +44,15 @@ public class FLegacy : ForgeInstaller
             throw new InvalidOperationException("path property in installer was null");
 
         ExtractUniversal(installerDir, universalPath, destPath); // old installer
-        await CheckAndDownloadLibraries(installProfile["libraries"] as JArray, progress); //install libs
+        await CheckAndDownloadLibraries(installProfile["libraries"] as JArray); //install libs
         StartProcessors(installProfile["processors"] as JArray, mapData);
         setupFolderLegacy(versionId, Path.Combine(installerDir, universalPath), version!.ToString()); //copy version.json and forge.jar
     }
 
     private void setupFolderLegacy(string versionName, string universalJarPath, string versionContent)
     {
-        var jarPath = MinecraftPath.GetVersionJarPath(versionName);
-        var jsonPath = MinecraftPath.GetVersionJsonPath(versionName);
+        var jarPath = InstallOptions.MinecraftPath.GetVersionJarPath(versionName);
+        var jsonPath = InstallOptions.MinecraftPath.GetVersionJsonPath(versionName);
 
         IOUtil.CreateDirectoryForFile(jarPath);
         IOUtil.CreateDirectoryForFile(jsonPath);

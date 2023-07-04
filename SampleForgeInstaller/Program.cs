@@ -3,11 +3,7 @@ using CmlLib.Core;
 using CmlLib.Core.Auth;
 using CmlLib.Core.Downloader;
 using System.ComponentModel;
-using SampleForgeInstaller;
-
-//await new AllInstaller().InstallAll();
-//await new AllInstaller().InstallAndLaunch("1.8.9");
-//return;
+using CmlLib.Utils;
 
 var httpClient = new HttpClient();
 var path = new MinecraftPath(); // use default directory
@@ -34,7 +30,9 @@ var forgeVersion = "47.0.35";
 var forge = new MForge(launcher);
 forge.FileChanged += fileChanged;
 forge.InstallerOutput += (s, e) => Console.WriteLine(e);
-var version_name = await forge.Install(mcVersion, forgeVersion); //Use await in the asynchronous method
+
+var version_name = await forge.Install(mcVersion, forgeVersion);
+//var version_name = await forge.Install(mcVersion); // install the recommended forge version for mcVersion
 //OR var version_name = forge.Install(mcVersion, forgeVersion).GetAwaiter().GetResult();
 
 //Start MineCraft
@@ -44,5 +42,10 @@ var launchOption = new MLaunchOption
     Session = MSession.GetOfflineSession("TaiogStudio"),
 };
 
-var process = launcher.CreateProcess(version_name, launchOption);
-process.Start();
+var process = await launcher.CreateProcessAsync(version_name, launchOption);
+
+// print game logs
+var processUtil = new ProcessUtil(process);
+processUtil.OutputReceived += (s, e) => Console.WriteLine(e);
+processUtil.StartWithEvents();
+await processUtil.WaitForExitTaskAsync();

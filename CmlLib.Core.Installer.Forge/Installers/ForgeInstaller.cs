@@ -8,54 +8,51 @@ using System.Diagnostics;
 
 namespace CmlLib.Core.Installer.Forge.Installers;
 
-public abstract class ForgeInstaller
+public abstract class ForgeInstaller : IForgeInstaller
 {
-    protected MinecraftPath MinecraftPath { get; }
-    private readonly string _javaPath;
-    private readonly IDownloader _downloader;
-    private readonly FastZip _zip = new FastZip();
+    public string VersionName { get; }
+    public ForgeVersion ForgeVersion { get; }
+    public event DownloadFileChangedHandler? FileChanged;
     public event EventHandler<string>? InstallerOutput;
 
-    public ForgeInstaller(
-        MinecraftPath minecraftPath,
-        string javaPath,
-        IDownloader downloader)
+    private readonly IProgress<DownloadFileChangedEventArgs> _progress;        
+    private readonly FastZip _zip = new FastZip();
+    private ForgeInstallOptions? _options;
+    protected ForgeInstallOptions InstallOptions
     {
-        MinecraftPath = minecraftPath;
-        this._javaPath = javaPath;
-        this._downloader = downloader;
+        get => _options ?? throw new InvalidOperationException();
+        set => _options = value;
     }
 
-    public async Task Install(
-        ForgeVersion forgeVersion, 
-        string versionName, 
-        IProgress<DownloadFileChangedEventArgs>? progress)
+    public ForgeInstaller(string versionName, ForgeVersion forgeVersion)
     {
-        var installerDir = await downloadAndExtractInstaller(forgeVersion);
-        await Install(forgeVersion, installerDir, versionName, progress);
+        VersionName = versionName;
+        ForgeVersion = forgeVersion;
+        _progress = new Progress<DownloadFileChangedEventArgs>(e => FileChanged?.Invoke(e));
+    }
+
+    public async Task Install(ForgeInstallOptions options)
+    {
+        InstallOptions = options;
+        var installerDir = await downloadAndExtractInstaller();
+        await Install(installerDir);
         Directory.Delete(installerDir, true); //remove temp folder
     }
 
-    protected abstract Task Install(
-        ForgeVersion forgeVersion, 
-        string installerDir, 
-        string versionName, 
-        IProgress<DownloadFileChangedEventArgs>? progress);
+    protected abstract Task Install(string installerDir);
 
-    private async Task<string> downloadAndExtractInstaller(ForgeVersion forgeVersion)
+    private async Task<string> downloadAndExtractInstaller()
     {
         var installDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName()); //create folder in temp
         var installerJar = Path.Combine(installDir, "installer.jar");
-        var installerUrl = forgeVersion.GetInstallerFile()?.DirectUrl;
+        var installerUrl = ForgeVersion.GetInstallerFile()?.DirectUrl;
         if (string.IsNullOrEmpty(installerUrl))
             throw new InvalidOperationException("The forge version doesn't have installer url");
 
-        await _downloader.DownloadFiles(
+        await InstallOptions.Downloader.DownloadFiles(
             new[] { new DownloadFile(installerJar, installerUrl) }, 
-            null, null);
+            _progress, null);
 
-        //File.Copy(installerJar, Path.Combine(installDir, "version.zip"));
-        //new FastZip().ExtractZip(Path.Combine(installDir, "version.zip"), installDir, null); //unzip version
         _zip.ExtractZip(installerJar, installDir, null);
         return installDir;
     }
@@ -64,7 +61,7 @@ public abstract class ForgeInstaller
     {
         var org = Path.Combine(installerPath, "maven");
         if (Directory.Exists(org))
-            IOUtil.CopyDirectory(org, MinecraftPath.Library, true);
+            IOUtil.CopyDirectory(org, InstallOptions.MinecraftPath.Library, true);
     }
 
     protected void ExtractUniversal(string installerPath, string universalPath, string destinyName)
@@ -75,7 +72,7 @@ public abstract class ForgeInstaller
         // copy universal library to minecraft
         var universal = Path.Combine(installerPath, universalPath);
         var desPath = PackageName.Parse(destinyName).GetPath();
-        var des = Path.Combine(MinecraftPath.Library, desPath);
+        var des = Path.Combine(InstallOptions.MinecraftPath.Library, desPath);
 
         if (File.Exists(universal))
         {
@@ -86,9 +83,7 @@ public abstract class ForgeInstaller
         }
     }
 
-    protected async Task CheckAndDownloadLibraries(
-        JArray? jarr, 
-        IProgress<DownloadFileChangedEventArgs>? progress)
+    protected async Task CheckAndDownloadLibraries(JArray? jarr)
     {
         if (jarr == null || jarr.Count == 0)
             return;
@@ -103,14 +98,15 @@ public abstract class ForgeInstaller
         }
 
         var libraryChecker = new LibraryChecker();
-        var lostLibrary = libraryChecker.CheckFiles(MinecraftPath, libs.ToArray(), progress);
+        var lostLibrary = libraryChecker.CheckFiles(
+            InstallOptions.MinecraftPath, libs.ToArray(), _progress);
 
         if (lostLibrary != null)
-            await _downloader.DownloadFiles(lostLibrary, progress, null);
+            await InstallOptions.Downloader.DownloadFiles(lostLibrary, _progress, null);
     }
 
-    protected Dictionary<string, string?> MapProcessorData(JObject data, string kind,
-        string minecraftJar, string installDir)
+    protected Dictionary<string, string?> MapProcessorData(
+        JObject data, string kind, string minecraftJar, string installDir)
     {
         var dataMapping = new Dictionary<string, string?>();
         foreach (var item in data)
@@ -121,7 +117,7 @@ public abstract class ForgeInstaller
             if (string.IsNullOrEmpty(value))
                 continue;
 
-            var fullPath = Mapper.ToFullPath(value, MinecraftPath.Library);
+            var fullPath = Mapper.ToFullPath(value, InstallOptions.MinecraftPath.Library);
             if (fullPath == value)
             {
                 value = value.Trim('/');
@@ -182,7 +178,7 @@ public abstract class ForgeInstaller
 
         // jar
         var jar = PackageName.Parse(name);
-        var jarPath = Path.Combine(MinecraftPath.Library, jar.GetPath());
+        var jarPath = Path.Combine(InstallOptions.MinecraftPath.Library, jar.GetPath());
 
         var jarFile = new JarFile(jarPath);
         var jarManifest = jarFile.GetManifest();
@@ -204,7 +200,7 @@ public abstract class ForgeInstaller
                 if (string.IsNullOrEmpty(libNameString))
                     continue;
 
-                var lib = Path.Combine(MinecraftPath.Library,
+                var lib = Path.Combine(InstallOptions.MinecraftPath.Library,
                     PackageName.Parse(libNameString).GetPath());
                 classpath.Add(lib);
             }
@@ -217,7 +213,7 @@ public abstract class ForgeInstaller
         if (argsArr != null)
         {
             var arrStrs = argsArr.Select(x => x.ToString()).ToArray();
-            args = Mapper.Map(arrStrs, mapData, MinecraftPath.Library);
+            args = Mapper.Map(arrStrs, mapData, InstallOptions.MinecraftPath.Library);
         }
 
         startJava(classpath.ToArray(), mainClass, args);
@@ -225,6 +221,9 @@ public abstract class ForgeInstaller
 
     private void startJava(string[] classpath, string mainClass, string[]? args)
     {
+        if (string.IsNullOrEmpty(InstallOptions.JavaPath))
+            throw new InvalidOperationException("JavaPath was empty");
+
         var arg =
             $"-cp {IOUtil.CombinePath(classpath)} " +
             $"{mainClass}";
@@ -235,7 +234,7 @@ public abstract class ForgeInstaller
         var process = new Process();
         process.StartInfo = new ProcessStartInfo()
         {
-            FileName = _javaPath,
+            FileName = InstallOptions.JavaPath,
             Arguments = arg,
         };
 
