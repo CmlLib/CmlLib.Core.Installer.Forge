@@ -4,6 +4,7 @@ using CmlLib.Core.Auth;
 using CmlLib.Core.Downloader;
 using System.ComponentModel;
 using CmlLib.Utils;
+using SampleForgeInstaller;
 
 var httpClient = new HttpClient();
 var path = new MinecraftPath(); // use default directory
@@ -29,6 +30,7 @@ var forgeVersion = "47.0.35";
 //Initialize MForge
 var forge = new MForge(launcher);
 forge.FileChanged += fileChanged;
+forge.ProgressChanged += progressChanged;
 forge.InstallerOutput += (s, e) => Console.WriteLine(e);
 
 var version_name = await forge.Install(mcVersion, forgeVersion);

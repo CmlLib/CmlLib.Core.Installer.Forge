@@ -16,48 +16,54 @@ public class FLegacy : ForgeInstaller
 
     protected override async Task Install(string installerDir)
     {
-        var vanillaJarPath = InstallOptions.MinecraftPath.GetVersionJarPath(ForgeVersion.MinecraftVersionName); // get vanilla jar file
+        var installProfile = await ReadInstallerProfile(installerDir);
 
-        var installProfilePath = Path.Combine(installerDir, "install_profile.json");
-        if (!File.Exists(installProfilePath))
-            throw new InvalidOperationException("The installer does not have install_profile.json file");
+        var version = (installProfile["versionInfo"] as JObject) ?? 
+            throw new InvalidOperationException("no versionInfo property");
 
-        var installProfileContent = File.ReadAllText(installProfilePath);
-        var installProfile = JObject.Parse(installProfileContent);
-
-        var version = installProfile["versionInfo"] as JObject;
         var versionId = version?["id"]?.ToString();
         if (string.IsNullOrEmpty(versionId))
             throw new InvalidOperationException("install_profile.json does not have id property");
 
-        var installerData = installProfile["data"] as JObject;
-        var mapData = installerData == null ? 
-            new Dictionary<string, string?>() : 
-            MapProcessorData(installerData, "client", vanillaJarPath, installerDir);
+        await extractUniversal(installerDir, installProfile); // old installer
+        await CheckAndDownloadLibraries(installProfile["libraries"] as JArray); //install libs
+        await setupFolderLegacy(version!.ToString()); //copy version.json and forge.jar
+    }
 
+    private async Task extractUniversal(string installerDir, JObject installProfile)
+    {
         var destPath = (installProfile["install"] as JObject)?["path"]?.ToString();
         var universalPath = (installProfile["install"] as JObject)?["filePath"]?.ToString();
 
-        if (string.IsNullOrEmpty(universalPath)) 
+        if (string.IsNullOrEmpty(universalPath))
             throw new InvalidOperationException("filePath property in installer was null");
-        if (string.IsNullOrEmpty(destPath)) 
+        if (string.IsNullOrEmpty(destPath))
             throw new InvalidOperationException("path property in installer was null");
 
-        ExtractUniversal(installerDir, universalPath, destPath); // old installer
-        await CheckAndDownloadLibraries(installProfile["libraries"] as JArray); //install libs
-        StartProcessors(installProfile["processors"] as JArray, mapData);
-        setupFolderLegacy(versionId, Path.Combine(installerDir, universalPath), version!.ToString()); //copy version.json and forge.jar
+        await extractUniversal(installerDir, universalPath, destPath);
     }
 
-    private void setupFolderLegacy(string versionName, string universalJarPath, string versionContent)
+    private async Task extractUniversal(string installerPath, string universalPath, string destName)
     {
-        var jarPath = InstallOptions.MinecraftPath.GetVersionJarPath(versionName);
-        var jsonPath = InstallOptions.MinecraftPath.GetVersionJsonPath(versionName);
+        // copy universal library to minecraft
+        var universal = Path.Combine(installerPath, universalPath);
+        var desPath = PackageName.Parse(destName).GetPath();
+        var des = Path.Combine(InstallOptions.MinecraftPath.Library, desPath);
+        var jarPath = InstallOptions.MinecraftPath.GetVersionJarPath(VersionName);
 
-        IOUtil.CreateDirectoryForFile(jarPath);
+        if (File.Exists(universal))
+        {
+            IOUtil.CreateDirectoryForFile(jarPath);
+            IOUtil.CreateDirectoryForFile(des);
+            await IOUtil.CopyFileAsync(universal, des);
+            await IOUtil.CopyFileAsync(universal, jarPath);
+        }
+    }
+
+    private async Task setupFolderLegacy(string versionContent)
+    {
+        var jsonPath = InstallOptions.MinecraftPath.GetVersionJsonPath(VersionName);
         IOUtil.CreateDirectoryForFile(jsonPath);
-        if (File.Exists(universalJarPath))
-            File.Copy(universalJarPath, jarPath, true);
-        File.WriteAllText(jsonPath, versionContent); //write version.json
+        await IOUtil.WriteFileAsync(jsonPath, versionContent); 
     }
 }

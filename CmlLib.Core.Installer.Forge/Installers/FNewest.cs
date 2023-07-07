@@ -13,19 +13,18 @@ public class FNewest : ForgeInstaller
 
     protected override async Task Install(string installerDir)
     {
-        var vanillaJarPath = InstallOptions.MinecraftPath.GetVersionJarPath(ForgeVersion.MinecraftVersionName); // get vanilla jar file
-
-        var installProfilePath = Path.Combine(installerDir, "install_profile.json");
-        var installer = JObject.Parse(File.ReadAllText(installProfilePath));
-        var installerData = installer["data"] as JObject;
-        var mapData = installerData == null ? 
-            new Dictionary<string, string?>() : 
-            MapProcessorData(installerData, "client", vanillaJarPath, installerDir);
-
-        ExtractMavens(installerDir); //setup maven
+        var installer = await ReadInstallerProfile(installerDir);
+        extractMavens(installerDir); //setup maven
         await CheckAndDownloadLibraries(installer["libraries"] as JArray); //install libs
-        StartProcessors(installer["processors"] as JArray, mapData);
+        await MapAndStartProcessors(installer, installerDir);
         await setupFolder(installerDir); //copy version.json and forge.jar
+    }
+
+    private void extractMavens(string installerPath)
+    {
+        var org = Path.Combine(installerPath, "maven");
+        if (Directory.Exists(org))
+            IOUtil.CopyDirectory(org, InstallOptions.MinecraftPath.Library, true);
     }
 
     private async Task setupFolder(string installerDir)

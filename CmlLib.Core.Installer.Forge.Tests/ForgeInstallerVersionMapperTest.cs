@@ -6,10 +6,10 @@ namespace CmlLib.Core.Installer.Forge.Tests;
 public class ForgeInstallerVersionMapperTest
 {
     [Theory]
-    [InlineData(typeof(FLegacy), "1.5.2",  "7.8.1.738",    "1.5.2-Forge7.8.1.738")]
-    [InlineData(typeof(FLegacy), "1.6.1",  "8.9.0.775",    "Forge8.9.0.775")]
-    [InlineData(typeof(FLegacy), "1.6.4",  "9.11.1.1345",  "1.6.4-Forge9.11.1.1345")]
-    [InlineData(typeof(FLegacy), "1.7.2",  "10.12.2.1161", "1.7.2-Forge10.12.2.1161-mc172")]
+    [InlineData(typeof(FOldest), "1.5.2",  "7.8.1.738",    "1.5.2-Forge7.8.1.738")]
+    [InlineData(typeof(FOldest), "1.6.1",  "8.9.0.775",    "Forge8.9.0.775")]
+    [InlineData(typeof(FOldest), "1.6.4",  "9.11.1.1345",  "1.6.4-Forge9.11.1.1345")]
+    [InlineData(typeof(FOldest), "1.7.2",  "10.12.2.1161", "1.7.2-Forge10.12.2.1161-mc172")]
     [InlineData(typeof(FLegacy), "1.7.10-pre4", "10.12.2.1149", "1.7.10-pre4-Forge10.12.2.1149-prerelease")]
     [InlineData(typeof(FLegacy), "1.7.10", "10.13.4.1614", "1.7.10-Forge10.13.4.1614-1.7.10")]
     [InlineData(typeof(FLegacy), "1.8",    "11.14.4.1563", "1.8-forge1.8-11.14.4.1563")]

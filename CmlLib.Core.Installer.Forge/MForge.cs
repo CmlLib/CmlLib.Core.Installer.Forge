@@ -1,6 +1,7 @@
 ﻿using CmlLib.Core.Downloader;
 using CmlLib.Core.Installer.Forge.Versions;
 using CmlLib.Core.Version;
+using System.ComponentModel;
 using System.Diagnostics;
 
 namespace CmlLib.Core.Installer.Forge;
@@ -15,6 +16,7 @@ public class MForge
     private readonly ForgeVersionLoader _versionLoader;
 
     public event DownloadFileChangedHandler? FileChanged;
+    public event EventHandler<ProgressChangedEventArgs>? ProgressChanged;
     public event EventHandler<string>? InstallerOutput;
 
     public MForge(CMLauncher launcher)
@@ -80,7 +82,8 @@ public class MForge
         if (string.IsNullOrEmpty(options.JavaPath))
             options.JavaPath = getJavaPath(version);
 
-        var progress = new Progress<DownloadFileChangedEventArgs>(e => FileChanged?.Invoke(e));
+        installer.FileChanged += e => FileChanged?.Invoke(e);
+        installer.ProgressChanged += (s, e) => ProgressChanged?.Invoke(this, e);
         installer.InstallerOutput += (s, e) => InstallerOutput?.Invoke(this, e);
         await installer.Install(options);
 
