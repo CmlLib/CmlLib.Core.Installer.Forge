@@ -6,7 +6,6 @@ using System.ComponentModel;
 using CmlLib.Utils;
 using SampleForgeInstaller;
 
-var httpClient = new HttpClient();
 var path = new MinecraftPath(); // use default directory
 var launcher = new CMLauncher(path);
 
@@ -37,7 +36,7 @@ var version_name = await forge.Install(mcVersion, forgeVersion);
 //var version_name = await forge.Install(mcVersion); // install the recommended forge version for mcVersion
 //OR var version_name = forge.Install(mcVersion, forgeVersion).GetAwaiter().GetResult();
 
-//Start MineCraft
+//Start Minecraft
 var launchOption = new MLaunchOption
 {
     MaximumRamMb = 1024,

@@ -1,61 +1,36 @@
 # CmlLib.Core.Installer.Forge
+
 ## Minecraft Forge Installer
 <img src='https://raw.githubusercontent.com/CmlLib/CmlLib.Core/master/icon.png' width=128>
 
-This is the official package for installing Forge for the CmlLib.Core library. 
+Forge Installer for [CmlLib.Core](https://github.com/CmlLib/CmlLib.Core)
+
 ## Features 
 * Forge Developer Support! After successfully installing the Forge version, the Forge advertising page will automatically open for you.
 * Automatic change of links to install Forge
-* Installing Forge 1.7.10
-* Installing a legacy version of the type (1.8-1.9.4)
-* Installing the old type version (1.10-1.11.2)
-* Installing a new type of version (1.12 - 1.16.5)
-* Installing the newest version of the type (1.16.5 - 1.20.*)
 * Automatic installation of the Vanilla version of Minecraft before installing Forge
 * Skipping the Forge re-installation
+
+## Supported Forge Versions
+
+**1.7.10 ~ 1.20.1** forge versions was successfully tested. [All test results](https://alphabs.gitbook.io/cmllib/installer.forge/supported-versions)
+
 ## Install
 
-Install the [CmlLib.Core Nuget package](https://www.nuget.org/packages/CmlLib.Core)
+Install the [CmlLib.Core.Installer.Forge Nuget package](https://www.nuget.org/packages/CmlLib.Core.Installer.Forge)
 
-or download the DLL files in [Releases](https://github.com/AlphaBs/CmlLib.Core/releases) and add references to them in your project.
+or download the nupkg in [Releases](https://github.com/CmlLib/CmlLib.Core.Installer.Forge/releases) and add references to them in your project.
 
-Write this at the top of your source code:
-```csharp
-using CmlLib.Core.Installer.Forge;
-using CmlLib.Core;
-using CmlLib.Core.Auth;
-```
-## Quick start
-```csharp
-//var path = new MinecraftPath("game_directory_path");
-var path = new MinecraftPath(); // use default directory
+## [Documentation](https://alphabs.gitbook.io/cmllib/installer.forge/home)
 
-var launcher = new CMLauncher(path);
+[Usages and Examples](https://alphabs.gitbook.io/cmllib/installer.forge/home)
 
-// show launch progress to console
-launcher.FileChanged += (e) => Console.WriteLine($"[{e.FileKind.ToString()}] {e.FileName} - {e.ProgressedFileCount}/{e.TotalFileCount}");
-launcher.ProgressChanged += (s, e) => Console.WriteLine($"{e.ProgressPercentage}%");
+## Contributors
 
-//Initialize variables with the Minecraft version and the Forge version
-var mcVersion = "1.12.2"; 
-var forgeVersion = "14.23.5.2860";
+<a href="https://github.com/CmlLib/CmlLib.Core.Installer.Forge/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=CmlLib/CmlLib.Core.Installer.Forge" />
+</a>
 
-//Initialize MForge
-var forge = new MForge(path, launcher);
-var version_name = await forge.Install(mcVersion, forgeVersion); //Use await in the asynchronous method
-//OR var version_name = forge.Install(mcVersion, forgeVersion).GetAwaiter().GetResult();
+Made with [contrib.rocks](https://contrib.rocks).
 
-//Start MineCraft
-var launchOption = new MLaunchOption
-{
-  MaximumRamMb = 1024,
-  Session = MSession.GetOfflineSession("USERNAME"),
-};
-
-var process = launcher.CreateProcess(version_name, launchOption);
-process.Start();
-```
-You can disable the quick launch feature if the version is already installed: 
-```csharp
-var forge = new MForge(path, launcher, true);
-```
+Special thanks to [TaigoStudio](https://github.com/TaigoStudio) for contributing almost entire source codes.

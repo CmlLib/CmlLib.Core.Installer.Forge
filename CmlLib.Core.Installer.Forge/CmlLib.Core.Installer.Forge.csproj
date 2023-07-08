@@ -9,7 +9,7 @@
     </PropertyGroup>
     
     <PropertyGroup>
-        <Version>0.0.1</Version>
+        <Version>0.0.2</Version>
         <Description>Minecraft Forge Installer</Description>
         <Copyright>Copyright (c) 2023 CmlLib</Copyright>
         <PackageProjectUrl>https://github.com/CmlLib/CmlLib.Core.Installer.Forge</PackageProjectUrl>
