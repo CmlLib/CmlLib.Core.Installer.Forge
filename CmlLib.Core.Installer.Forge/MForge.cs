@@ -87,7 +87,6 @@ public class MForge
         installer.InstallerOutput += (s, e) => InstallerOutput?.Invoke(this, e);
         await installer.Install(options);
 
-        showAd();
         await _launcher.GetAllVersionsAsync();
         return installer.VersionName;
     }
@@ -120,12 +119,5 @@ public class MForge
         if (string.IsNullOrEmpty(javaPath) || !File.Exists(javaPath))
             throw new InvalidOperationException("Cannot find any java binary. Set java binary path");
         return javaPath;
-    }
-
-    private void showAd()
-    {
-        //########################AD URL##############################
-        Process.Start(new ProcessStartInfo(ForgeAdUrl) { UseShellExecute = true });
-        //########################AD URL##############################
     }
 }
