@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <LangVersion>10.0</LangVersion>
-        <TargetFramework>netstandard2.0</TargetFramework>
+        <TargetFramework>netstandard2.1</TargetFramework>
         <OutputType>Library</OutputType>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
@@ -25,7 +25,6 @@
     </PropertyGroup>
     
     <ItemGroup>
-      <PackageReference Include="CmlLib.Core" Version="3.3.7" />
       <PackageReference Include="HtmlAgilityPack" Version="1.11.48" />
     </ItemGroup>
 
@@ -42,5 +41,9 @@
     <ItemGroup>
         <None Include="../icon.png" Pack="true" Visible="false" PackagePath="" />
         <None Include="../README.md" Pack="true" Visible="false" PackagePath="" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\..\..\CmlLib.Core\CmlLib\CmlLib.csproj" />
     </ItemGroup>
 </Project>
