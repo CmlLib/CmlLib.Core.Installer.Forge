@@ -21,6 +21,7 @@ public abstract class ForgeInstaller : IForgeInstaller
     private readonly IProgress<ProgressChangedEventArgs> _bytesPrgress;
     private readonly FastZip _zip = new FastZip();
     private ForgeInstallOptions? _options;
+
     protected ForgeInstallOptions InstallOptions
     {
         get => _options ?? throw new InvalidOperationException();
@@ -59,7 +60,7 @@ public abstract class ForgeInstaller : IForgeInstaller
             Name = VersionName
         };
         await InstallOptions.Downloader.DownloadFiles(
-            new[] { file }, 
+            new[] { file },
             _fileProgress, _bytesPrgress);
 
         _zip.ExtractZip(installerJar, installDir, null);
@@ -99,7 +100,8 @@ public abstract class ForgeInstaller : IForgeInstaller
 
     protected async Task MapAndStartProcessors(JObject installProfile, string installerDir)
     {
-        var vanillaJarPath = InstallOptions.MinecraftPath.GetVersionJarPath(ForgeVersion.MinecraftVersionName); // get vanilla jar file
+        var vanillaJarPath =
+            InstallOptions.MinecraftPath.GetVersionJarPath(ForgeVersion.MinecraftVersionName); // get vanilla jar file
         var installerData = installProfile["data"] as JObject;
         Dictionary<string, string?>? mapData = null;
         if (installerData != null)
@@ -209,6 +211,7 @@ public abstract class ForgeInstaller : IForgeInstaller
                 classpath.Add(lib);
             }
         }
+
         classpath.Add(jarPath);
 
         // arg
@@ -242,9 +245,11 @@ public abstract class ForgeInstaller : IForgeInstaller
             Arguments = arg,
         };
 
+        Debug.WriteLine(process.StartInfo.Arguments.Replace("C:\\Users\\aa.terentiev\\AppData\\Roaming\\.minecraft", "\n{localPath}"));
+
         var p = new ProcessUtil(process);
         p.OutputReceived += (s, e) =>
-        InstallerOutput?.Invoke(this, e);
+            InstallerOutput?.Invoke(this, e);
         p.StartWithEvents();
         await p.WaitForExitTaskAsync();
     }
