@@ -52,6 +52,7 @@ namespace CmlLib.Utils
                 paths.Select(x =>
                 {
                     string path = Path.GetFullPath(x);
+                    return "\"" + path + "\"";
                     if (path.Contains(' '))
                         return "\"" + path + "\"";
                     else
