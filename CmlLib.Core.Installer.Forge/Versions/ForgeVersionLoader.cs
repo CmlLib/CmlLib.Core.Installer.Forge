@@ -1,5 +1,4 @@
 ﻿using HtmlAgilityPack;
-using System;
 
 namespace CmlLib.Core.Installer.Forge.Versions;
 
@@ -40,7 +39,7 @@ public class ForgeVersionLoader
         {
             if (td.HasClass("download-version"))
             {
-                forgeVersion = td.InnerText.Trim().Split(' ')[0].Replace("\n", "").Replace("\r", "");
+                forgeVersion = td.GetDirectInnerText().Trim().Split(' ')[0].Replace("\n", "").Replace("\r", "");
                 versionNode = td;
             }
             if (td.HasClass("download-time"))
