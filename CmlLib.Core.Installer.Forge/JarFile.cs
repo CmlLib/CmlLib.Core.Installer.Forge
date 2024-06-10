@@ -3,7 +3,7 @@ using System.Text;
 
 namespace CmlLib.Core.Installer.Forge;
 
-public class JarFile
+internal class JarFile
 {
     public JarFile(string path)
     {

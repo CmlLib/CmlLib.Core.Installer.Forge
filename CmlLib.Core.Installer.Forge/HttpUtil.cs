@@ -1,6 +1,6 @@
 ﻿namespace CmlLib.Core.Installer.Forge;
 
-public class HttpUtil
+internal class HttpUtil
 {
     public static async Task DownloadFile(HttpClient httpClient, string url, string dest)
     {

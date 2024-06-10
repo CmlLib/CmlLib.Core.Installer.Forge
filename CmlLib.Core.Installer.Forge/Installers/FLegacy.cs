@@ -1,55 +1,61 @@
-﻿using CmlLib.Core.Downloader;
-using CmlLib.Core.Installer.Forge.Versions;
+﻿using CmlLib.Core.Installer.Forge.Versions;
+using CmlLib.Core.Installers;
 using CmlLib.Utils;
-using ICSharpCode.SharpZipLib.Zip;
-using Newtonsoft.Json.Linq;
+using System.Text.Json;
 
 namespace CmlLib.Core.Installer.Forge.Installers;
 
 /* 1.7.10 - 1.11.2 */
-public class FLegacy : ForgeInstaller
+public class FLegacy : IForgeInstaller
 {
-    public FLegacy(string versionName, ForgeVersion forgeVersion) : 
-        base(versionName, forgeVersion)
+    public FLegacy(string versionName, ForgeVersion forgeVersion)
     {
+        VersionName = versionName;
+        ForgeVersion = forgeVersion;
     }
 
-    protected override async Task Install(string installerDir)
-    {
-        var installProfile = await ReadInstallerProfile(installerDir);
+    public string VersionName { get; }
+    public ForgeVersion ForgeVersion { get; }
 
-        var version = (installProfile["versionInfo"] as JObject) ?? 
+    public async Task Install(MinecraftPath path, IGameInstaller installer, ForgeInstallOptions options)
+    {
+        using var extractor = await ForgeInstallerExtractor.DownloadAndExtractInstaller(ForgeVersion, installer, options);
+        using var installerProfileStream = extractor.OpenInstallerProfile();
+        using var installerProfile = await JsonDocument.ParseAsync(installerProfileStream);
+
+        var version = extractVersionJson(installerProfile.RootElement);
+        await extractUniversal(path, extractor.ExtractedDir, installerProfile.RootElement);
+        await installLibraries(installerProfile.RootElement, path, installer, options);
+        await writeVersionJson(path, version);
+    }
+
+    private JsonElement extractVersionJson(JsonElement installerProfile)
+    {
+        JsonElement version;
+        if (!installerProfile.TryGetProperty("versionInfo", out version))
             throw new InvalidOperationException("no versionInfo property");
 
-        var versionId = version?["id"]?.ToString();
+        var versionId = version.GetPropertyValue("id");
         if (string.IsNullOrEmpty(versionId))
             throw new InvalidOperationException("install_profile.json does not have id property");
 
-        await extractUniversal(installerDir, installProfile); // old installer
-        await CheckAndDownloadLibraries(installProfile["libraries"] as JArray); //install libs
-        await setupFolderLegacy(version!.ToString()); //copy version.json and forge.jar
+        return version;
     }
 
-    private async Task extractUniversal(string installerDir, JObject installProfile)
+    private async Task extractUniversal(MinecraftPath path, string installerDir, JsonElement installerProfile)
     {
-        var destPath = (installProfile["install"] as JObject)?["path"]?.ToString();
-        var universalPath = (installProfile["install"] as JObject)?["filePath"]?.ToString();
+        var destPath = installerProfile.GetPropertyOrNull("install")?.GetPropertyValue("path");
+        var universalPath = installerProfile.GetPropertyOrNull("install")?.GetPropertyValue("filePath");
 
         if (string.IsNullOrEmpty(universalPath))
             throw new InvalidOperationException("filePath property in installer was null");
         if (string.IsNullOrEmpty(destPath))
             throw new InvalidOperationException("path property in installer was null");
 
-        await extractUniversal(installerDir, universalPath, destPath);
-    }
-
-    private async Task extractUniversal(string installerPath, string universalPath, string destName)
-    {
-        // copy universal library to minecraft
-        var universal = Path.Combine(installerPath, universalPath);
-        var desPath = PackageName.Parse(destName).GetPath();
-        var des = Path.Combine(InstallOptions.MinecraftPath.Library, desPath);
-        var jarPath = InstallOptions.MinecraftPath.GetVersionJarPath(VersionName);
+        var universal = Path.Combine(installerDir, universalPath);
+        var desPath = PackageName.Parse(destPath).GetPath();
+        var des = Path.Combine(path.Library, desPath);
+        var jarPath = path.GetVersionJarPath(VersionName);
 
         if (File.Exists(universal))
         {
@@ -60,10 +66,29 @@ public class FLegacy : ForgeInstaller
         }
     }
 
-    private async Task setupFolderLegacy(string versionContent)
+    private async Task installLibraries(
+        JsonElement installerProfile, 
+        MinecraftPath path, 
+        IGameInstaller installer, 
+        ForgeInstallOptions options)
     {
-        var jsonPath = InstallOptions.MinecraftPath.GetVersionJsonPath(VersionName);
-        IOUtil.CreateDirectoryForFile(jsonPath);
-        await IOUtil.WriteFileAsync(jsonPath, versionContent); 
+        if (installerProfile.TryGetProperty("libraries", out var libraryProp) &&
+            libraryProp.ValueKind == JsonValueKind.Array)
+        {
+            var libraryInstaller = new ForgeLibraryInstaller(installer, options.RulesContext, MojangServer.Library);
+            await libraryInstaller.Install(
+                path,
+                libraryProp,
+                options.FileProgress,
+                options.ByteProgress,
+                options.CancellationToken);
+        }
+    }
+
+    private async Task writeVersionJson(MinecraftPath path, JsonElement version)
+    {
+        var versionJsonPath = path.GetVersionJsonPath(VersionName);
+        using var versionJsonStream = File.Create(versionJsonPath);
+        await JsonSerializer.SerializeAsync(versionJsonStream, version);
     }
 }

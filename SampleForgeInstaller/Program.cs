@@ -1,38 +1,38 @@
 ﻿using CmlLib.Core.Installer.Forge;
 using CmlLib.Core;
 using CmlLib.Core.Auth;
-using CmlLib.Core.Downloader;
-using System.ComponentModel;
-using CmlLib.Utils;
+using CmlLib.Core.Installers;
+using CmlLib.Core.ProcessBuilder;
 using SampleForgeInstaller;
 
+var tester = new AllInstaller();
+await tester.InstallAll();
+return;
+
 var path = new MinecraftPath(); // use default directory
-var launcher = new CMLauncher(path);
+var launcher = new MinecraftLauncher(path);
 
 // show launch progress to console
-void fileChanged(DownloadFileChangedEventArgs e)
-{
-    Console.WriteLine($"[{e.FileKind.ToString()}] {e.FileName} - {e.ProgressedFileCount}/{e.TotalFileCount}");
-}
-void progressChanged(object? sender, ProgressChangedEventArgs e)
-{
-    Console.WriteLine($"{e.ProgressPercentage}%");
-}
-
-launcher.FileChanged += fileChanged;
-launcher.ProgressChanged += progressChanged;
+var fileProgress = new SyncProgress<InstallerProgressChangedEventArgs>(e =>
+    Console.WriteLine($"[{e.EventType}][{e.ProgressedTasks}/{e.TotalTasks}] {e.Name}"));
+var byteProgress = new SyncProgress<ByteProgress>(e =>
+    Console.WriteLine(e.ToRatio() * 100 + "%"));
+var installerOutput = new SyncProgress<string>(e =>
+    Console.WriteLine(e));
 
 //Initialize variables with the Minecraft version and the Forge version
 var mcVersion = "1.20.1";
-var forgeVersion = "47.0.35";
+var forgeVersion = "47.2.32";
 
 //Initialize MForge
-var forge = new MForge(launcher);
-forge.FileChanged += fileChanged;
-forge.ProgressChanged += progressChanged;
-forge.InstallerOutput += (s, e) => Console.WriteLine(e);
+var forge = new ForgeInstaller(launcher);
 
-var version_name = await forge.Install(mcVersion, forgeVersion);
+var version_name = await forge.Install(mcVersion, forgeVersion, new ForgeInstallOptions
+{
+    FileProgress = fileProgress,
+    ByteProgress = byteProgress,
+    InstallerOutput = installerOutput,
+});
 //var version_name = await forge.Install(mcVersion); // install the recommended forge version for mcVersion
 //OR var version_name = forge.Install(mcVersion, forgeVersion).GetAwaiter().GetResult();
 
@@ -40,13 +40,13 @@ var version_name = await forge.Install(mcVersion, forgeVersion);
 var launchOption = new MLaunchOption
 {
     MaximumRamMb = 1024,
-    Session = MSession.GetOfflineSession("TaiogStudio"),
+    Session = MSession.CreateOfflineSession("TaiogStudio"),
 };
 
 var process = await launcher.CreateProcessAsync(version_name, launchOption);
 
 // print game logs
-var processUtil = new ProcessUtil(process);
+var processUtil = new ProcessWrapper(process);
 processUtil.OutputReceived += (s, e) => Console.WriteLine(e);
 processUtil.StartWithEvents();
 await processUtil.WaitForExitTaskAsync();

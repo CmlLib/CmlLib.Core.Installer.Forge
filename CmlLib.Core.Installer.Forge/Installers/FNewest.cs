@@ -1,36 +1,74 @@
 ﻿using CmlLib.Core.Installer.Forge.Versions;
+using CmlLib.Core.Installers;
 using CmlLib.Utils;
-using Newtonsoft.Json.Linq;
+using System.Text.Json;
 
 namespace CmlLib.Core.Installer.Forge.Installers;
 
 /* 1.12.2 - 1.20.* */
-public class FNewest : ForgeInstaller
+public class FNewest : IForgeInstaller
 {
-    public FNewest(string versionName, ForgeVersion forgeVersion) : base(versionName, forgeVersion)
+    public FNewest(string versionName, ForgeVersion forgeVersion)
     {
+        VersionName = versionName;
+        ForgeVersion = forgeVersion;
     }
 
-    protected override async Task Install(string installerDir)
+    public string VersionName { get; }
+    public ForgeVersion ForgeVersion { get; }
+
+    public async Task Install(MinecraftPath path, IGameInstaller installer, ForgeInstallOptions options)
     {
-        var installer = await ReadInstallerProfile(installerDir);
-        extractMavens(installerDir); //setup maven
-        await CheckAndDownloadLibraries(installer["libraries"] as JArray); //install libs
-        await MapAndStartProcessors(installer, installerDir);
-        await setupFolder(installerDir); //copy version.json and forge.jar
+        if (string.IsNullOrEmpty(options.JavaPath))
+            throw new ArgumentNullException(nameof(options.JavaPath));
+        var processor = new ForgeInstallProcessor(options.JavaPath);
+
+        using var extractor = await ForgeInstallerExtractor.DownloadAndExtractInstaller(ForgeVersion, installer, options);
+        using var installerProfileStream = extractor.OpenInstallerProfile();
+        using var installerProfile = await JsonDocument.ParseAsync(installerProfileStream);
+
+        await extractMavens(extractor.ExtractedDir, path);
+        await installLibraries(installerProfile.RootElement, path, installer, options);
+        await processor.MapAndStartProcessors(
+            extractor.ExtractedDir, 
+            path.GetVersionJarPath(ForgeVersion.MinecraftVersionName), 
+            path.Library, 
+            installerProfile.RootElement, 
+            options.FileProgress,
+            options.InstallerOutput);
+        await copyVersionFiles(extractor.ExtractedDir, path);
     }
 
-    private void extractMavens(string installerPath)
+    private async Task extractMavens(string installerPath, MinecraftPath minecraftPath)
     {
         var org = Path.Combine(installerPath, "maven");
         if (Directory.Exists(org))
-            IOUtil.CopyDirectory(org, InstallOptions.MinecraftPath.Library, true);
+            await IOUtil.CopyDirectory(org, minecraftPath.Library);
     }
 
-    private async Task setupFolder(string installerDir)
+    private async Task installLibraries(
+        JsonElement installerProfile,
+        MinecraftPath path,
+        IGameInstaller installer,
+        ForgeInstallOptions options)
+    {
+        if (installerProfile.TryGetProperty("libraries", out var libraryProp) &&
+            libraryProp.ValueKind == JsonValueKind.Array)
+        {
+            var libraryInstaller = new ForgeLibraryInstaller(installer, options.RulesContext, MojangServer.Library);
+            await libraryInstaller.Install(
+                path,
+                libraryProp,
+                options.FileProgress,
+                options.ByteProgress,
+                options.CancellationToken);
+        }
+    }
+
+    private async Task copyVersionFiles(string installerDir, MinecraftPath minecraftPath)
     {
         var versionJsonSource = Path.Combine(installerDir, "version.json");
-        var versionJsonDest = InstallOptions.MinecraftPath.GetVersionJsonPath(VersionName);
+        var versionJsonDest = minecraftPath.GetVersionJsonPath(VersionName);
         IOUtil.CreateDirectoryForFile(versionJsonDest);
         await IOUtil.CopyFileAsync(versionJsonSource, versionJsonDest);
 
@@ -39,7 +77,7 @@ public class FNewest : ForgeInstaller
         var jar = Path.Combine(installerDir, $"maven/net/minecraftforge/forge/{m}-{f}/forge-{m}-{f}.jar");
         if (File.Exists(jar)) //fix 1.17+ 
         {
-            var jarPath = InstallOptions.MinecraftPath.GetVersionJarPath(VersionName);
+            var jarPath = minecraftPath.GetVersionJarPath(VersionName);
             IOUtil.CreateDirectoryForFile(jarPath);
             await IOUtil.CopyFileAsync(jar, jarPath);
         }

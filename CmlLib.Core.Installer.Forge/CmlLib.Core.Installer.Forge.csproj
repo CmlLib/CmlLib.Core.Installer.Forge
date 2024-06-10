@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <LangVersion>10.0</LangVersion>
+        <LangVersion>12.0</LangVersion>
         <TargetFramework>netstandard2.0</TargetFramework>
         <OutputType>Library</OutputType>
         <Nullable>enable</Nullable>
@@ -9,7 +9,7 @@
     </PropertyGroup>
     
     <PropertyGroup>
-        <Version>0.0.3</Version>
+        <Version>1.0.0-beta.1</Version>
         <Description>Minecraft Forge Installer</Description>
         <Copyright>Copyright (c) 2023 CmlLib</Copyright>
         <PackageProjectUrl>https://github.com/CmlLib/CmlLib.Core.Installer.Forge</PackageProjectUrl>
@@ -25,7 +25,7 @@
     </PropertyGroup>
     
     <ItemGroup>
-      <PackageReference Include="CmlLib.Core" Version="3.3.7" />
+      <PackageReference Include="CmlLib.Core" Version="4.0.0-beta.2" />
       <PackageReference Include="HtmlAgilityPack" Version="1.11.48" />
     </ItemGroup>
 

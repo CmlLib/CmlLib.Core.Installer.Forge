@@ -1,14 +1,21 @@
 ﻿using CmlLib.Core.Installer.Forge.Versions;
+using CmlLib.Core.Installers;
 
 namespace CmlLib.Core.Installer.Forge.Installers;
 
-public class FOldest : ForgeInstaller
+public class FOldest : IForgeInstaller
 {
-    public FOldest(string versionName, ForgeVersion forgeVersion) : base(versionName, forgeVersion)
+    public FOldest(string versionName, ForgeVersion forgeVersion)
     {
+        VersionName = versionName;
+        ForgeVersion = forgeVersion;
     }
 
-    protected override Task Install(string installerDir)
+    public string VersionName { get; }
+
+    public ForgeVersion ForgeVersion { get; }
+
+    public Task Install(MinecraftPath path, IGameInstaller installer, ForgeInstallOptions options)
     {
         throw new UnsupportedForgeVersionException(VersionName);
     }

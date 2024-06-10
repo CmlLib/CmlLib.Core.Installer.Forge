@@ -1,15 +1,15 @@
-using CmlLib.Core.Downloader;
+using CmlLib.Core.Installers;
+using CmlLib.Core.Rules;
 
 namespace CmlLib.Core.Installer.Forge;
 
 public class ForgeInstallOptions
 {
-    public ForgeInstallOptions(MinecraftPath path)
-    {
-        MinecraftPath = path;
-    }
-
-    public MinecraftPath MinecraftPath { get; set; }
-    public IDownloader Downloader { get; set; } = new SequenceDownloader();
     public string? JavaPath { get; set; }
+    public RulesEvaluatorContext RulesContext { get; set; } = new RulesEvaluatorContext(LauncherOSRule.Current);
+    public IProgress<InstallerProgressChangedEventArgs>? FileProgress { get; set; }
+    public IProgress<ByteProgress>? ByteProgress { get; set; }
+    public IProgress<string>? InstallerOutput { get; set; }
+    public CancellationToken CancellationToken { get; set; }
+    public bool SkipIfAlreadyInstalled { get; set; } = true;
 }

@@ -1,186 +1,123 @@
 ﻿using System.Text;
 
-namespace CmlLib.Utils
+namespace CmlLib.Utils;
+
+internal static class IOUtil
 {
-    public static class IOUtil
+    public static void CreateDirectoryForFile(string filepath)
     {
-        private const int DefaultBufferSize = 4096;
+        var dir = Path.GetDirectoryName(filepath);
+        if (!string.IsNullOrEmpty(dir))
+            Directory.CreateDirectory(dir);
+    }
 
-        public static void CreateDirectoryForFile(string filepath)
+
+    public static string NormalizePath(string path)
+    {
+        return Path.GetFullPath(path)
+            .Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar)
+            .TrimEnd(Path.DirectorySeparatorChar);
+    }
+
+    public static void DeleteDirectory(string targetDir)
+    {
+        try
         {
-            var dir = Path.GetDirectoryName(filepath);
-            if (!string.IsNullOrEmpty(dir))
-                Directory.CreateDirectory(dir);
-        }
+            string[] files = Directory.GetFiles(targetDir);
+            string[] dirs = Directory.GetDirectories(targetDir);
 
-
-        public static string NormalizePath(string path)
-        {
-            return Path.GetFullPath(path)
-                .Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar)
-                .TrimEnd(Path.DirectorySeparatorChar);
-        }
-
-        public static void DeleteDirectory(string targetDir)
-        {
-            try
+            foreach (string file in files)
             {
-                string[] files = Directory.GetFiles(targetDir);
-                string[] dirs = Directory.GetDirectories(targetDir);
-
-                foreach (string file in files)
-                {
-                    File.Delete(file);
-                }
-
-                foreach (string dir in dirs)
-                {
-                    DeleteDirectory(dir);
-                }
-
-                Directory.Delete(targetDir, true);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine(ex);
-            }
-        }
-
-        public static string CombinePath(string[] paths)
-        {
-            return string.Join(Path.PathSeparator.ToString(),
-                paths.Select(x =>
-                {
-                    string path = Path.GetFullPath(x);
-                    if (path.Contains(' '))
-                        return "\"" + path + "\"";
-                    else
-                        return path;
-                }));
-        }
-
-        public static void CopyDirectory(string org, string des, bool overwrite)
-        {
-            var dir = new DirectoryInfo(org);
-            if (!dir.Exists)
-                return;
-
-            copyDirectoryFiles(org, des, "", overwrite);
-        }
-
-        private static void copyDirectoryFiles(string org, string des, string path, bool overwrite)
-        {
-            var orgpath = Path.Combine(org, path);
-            var orgdir = new DirectoryInfo(orgpath);
-
-            var despath = Path.Combine(des, path);
-            if (!Directory.Exists(despath))
-                Directory.CreateDirectory(despath);
-
-            foreach (var dir in orgdir.GetDirectories("*", SearchOption.TopDirectoryOnly))
-            {
-                var innerpath = Path.Combine(path, dir.Name);
-                copyDirectoryFiles(org, des, innerpath, overwrite);
+                File.Delete(file);
             }
 
-            foreach (var file in orgdir.GetFiles("*", SearchOption.TopDirectoryOnly))
+            foreach (string dir in dirs)
             {
-                var innerpath = Path.Combine(path, file.Name);
-                var desfile = Path.Combine(des, innerpath);
-
-                file.CopyTo(desfile, overwrite);
+                DeleteDirectory(dir);
             }
+
+            Directory.Delete(targetDir, true);
         }
-
-        public static bool CheckSHA1(string path, string? compareHash)
+        catch (Exception ex)
         {
-            if (string.IsNullOrEmpty(compareHash))
-                return true;
+            System.Diagnostics.Debug.WriteLine(ex);
+        }
+    }
 
-            try
+    public static string CombinePath(IEnumerable<string> paths)
+    {
+        return string.Join(Path.PathSeparator.ToString(),
+            paths.Select(x =>
             {
-                string fileHash;
+                string path = Path.GetFullPath(x);
+                if (path.Contains(' '))
+                    return "\"" + path + "\"";
+                else
+                    return path;
+            }));
+    }
 
-                using (var file = File.OpenRead(path))
-                using (var hasher = new System.Security.Cryptography.SHA1CryptoServiceProvider())
-                {
-                    var binaryHash = hasher.ComputeHash(file);
-                    fileHash = BitConverter.ToString(binaryHash).Replace("-", "").ToLowerInvariant();
-                }
+    public static async Task CopyDirectory(string org, string des)
+    {
+        var dir = new DirectoryInfo(org);
+        if (!dir.Exists)
+            return;
 
-                return fileHash == compareHash;
-            }
-            catch
+        await copyDirectoryFiles(org, des, "");
+    }
+
+    private static async Task copyDirectoryFiles(string org, string des, string path)
+    {
+        var orgpath = Path.Combine(org, path);
+        var orgdir = new DirectoryInfo(orgpath);
+
+        var despath = Path.Combine(des, path);
+        if (!Directory.Exists(despath))
+            Directory.CreateDirectory(despath);
+
+        foreach (var dir in orgdir.GetDirectories("*", SearchOption.TopDirectoryOnly))
+        {
+            var innerpath = Path.Combine(path, dir.Name);
+            await copyDirectoryFiles(org, des, innerpath);
+        }
+
+        foreach (var file in orgdir.GetFiles("*", SearchOption.TopDirectoryOnly))
+        {
+            var innerpath = Path.Combine(path, file.Name);
+            var desfile = Path.Combine(des, innerpath);
+
+            await CopyFileAsync(file.FullName, desfile);
+        }
+    }
+
+    public static bool CheckSHA1(string path, string? compareHash)
+    {
+        if (string.IsNullOrEmpty(compareHash))
+            return true;
+
+        try
+        {
+            string fileHash;
+
+            using (var file = File.OpenRead(path))
+            using (var hasher = new System.Security.Cryptography.SHA1CryptoServiceProvider())
             {
-                return false;
+                var binaryHash = hasher.ComputeHash(file);
+                fileHash = BitConverter.ToString(binaryHash).Replace("-", "").ToLowerInvariant();
             }
+
+            return fileHash == compareHash;
         }
-
-        #region Async File IO
-
-        // from .NET Framework reference source code
-        // If we use the path-taking constructors we will not have FileOptions.Asynchronous set and
-        // we will have asynchronous file access faked by the thread pool. We want the real thing.
-        public static FileStream AsyncReadStream(string path)
+        catch
         {
-            FileStream stream = new FileStream(
-                path, FileMode.Open, FileAccess.Read, FileShare.Read, DefaultBufferSize,
-                FileOptions.Asynchronous | FileOptions.SequentialScan);
-
-            return stream;
+            return false;
         }
+    }
 
-        public static FileStream AsyncWriteStream(string path, bool append)
-        {
-            FileStream stream = new FileStream(
-                path, append ? FileMode.Append : FileMode.Create, FileAccess.Write, FileShare.Read, DefaultBufferSize,
-                FileOptions.Asynchronous | FileOptions.SequentialScan);
-
-            return stream;
-        }
-
-        public static StreamReader AsyncStreamReader(string path, Encoding encoding)
-        {
-            FileStream stream = AsyncReadStream(path);
-            return new StreamReader(stream, encoding, detectEncodingFromByteOrderMarks: false);
-        }
-
-        public static StreamWriter AsyncStreamWriter(string path, Encoding encoding, bool append)
-        {
-            FileStream stream = AsyncWriteStream(path, append);
-            return new StreamWriter(stream, encoding);
-        }
-
-        // In .NET Standard 2.0, There is no File.ReadFileTextAsync. so I copied it from .NET Core source code
-        public static async Task<string> ReadFileAsync(string path)
-        {
-            using var reader = AsyncStreamReader(path, Encoding.UTF8);
-            var content = await reader.ReadToEndAsync()
-                .ConfigureAwait(false); // **MUST be awaited in this scope**
-            await reader.BaseStream.FlushAsync().ConfigureAwait(false);
-            return content;
-        }
-
-        // In .NET Standard 2.0, There is no File.WriteFileTextAsync. so I copied it from .NET Core source code
-        public static async Task WriteFileAsync(string path, string content)
-        {
-            // UTF8 with BOM might not be recognized by minecraft. not tested
-            var encoder = new UTF8Encoding(false);
-            using var writer = AsyncStreamWriter(path, encoder, false);
-            await writer.WriteAsync(content).ConfigureAwait(false); // **MUST be awaited in this scope**
-            await writer.FlushAsync().ConfigureAwait(false);
-        }
-
-        public static async Task CopyFileAsync(string sourceFile, string destinationFile)
-        {
-            using var sourceStream = AsyncReadStream(sourceFile);
-            using var destinationStream = AsyncWriteStream(destinationFile, false);
-
-            await sourceStream.CopyToAsync(destinationStream).ConfigureAwait(false);
-
-            await destinationStream.FlushAsync().ConfigureAwait(false);
-        }
-
-        #endregion
+    public static async Task CopyFileAsync(string source, string target)
+    {
+        using var sourceFile = File.OpenRead(source);
+        using var targetFile = File.Create(target);
+        await sourceFile.CopyToAsync(targetFile);
     }
 }
