@@ -5,9 +5,9 @@ using CmlLib.Core.Installers;
 using CmlLib.Core.ProcessBuilder;
 using SampleForgeInstaller;
 
-var tester = new AllInstaller();
-await tester.InstallAll();
-return;
+// var tester = new AllInstaller();
+// await tester.InstallAll();
+// return;
 
 var path = new MinecraftPath(); // use default directory
 var launcher = new MinecraftLauncher(path);
@@ -21,11 +21,11 @@ var installerOutput = new SyncProgress<string>(e =>
     Console.WriteLine(e));
 
 //Initialize variables with the Minecraft version and the Forge version
-var mcVersion = "1.20.1";
-var forgeVersion = "47.2.32";
+var mcVersion = "1.21";
+var forgeVersion = "21.0.24-beta";
 
 //Initialize MForge
-var forge = new ForgeInstaller(launcher);
+var forge = new NeoForgeInstaller(launcher);
 
 var version_name = await forge.Install(mcVersion, forgeVersion, new ForgeInstallOptions
 {
@@ -45,8 +45,13 @@ var launchOption = new MLaunchOption
 
 var process = await launcher.CreateProcessAsync(version_name, launchOption);
 
+// process.Start();
+
+
 // print game logs
 var processUtil = new ProcessWrapper(process);
 processUtil.OutputReceived += (s, e) => Console.WriteLine(e);
 processUtil.StartWithEvents();
 await processUtil.WaitForExitTaskAsync();
+
+Console.WriteLine();

@@ -5,7 +5,7 @@ using System.Diagnostics;
 
 namespace CmlLib.Core.Installer.Forge;
 
-public class ForgeInstaller
+public class NeoForgeInstaller
 {
     public static readonly string ForgeAdUrl =
         "https://adfoc.us/serve/sitelinks/?id=271228&url=https://maven.minecraftforge.net/";
@@ -14,7 +14,7 @@ public class ForgeInstaller
     private readonly IForgeInstallerVersionMapper _installerMapper;
     private readonly ForgeVersionLoader _versionLoader;
 
-    public ForgeInstaller(MinecraftLauncher launcher)
+    public NeoForgeInstaller(MinecraftLauncher launcher)
     {
         _installerMapper = new ForgeInstallerVersionMapper();
         _versionLoader = new ForgeVersionLoader(new HttpClient());
@@ -28,41 +28,40 @@ public class ForgeInstaller
         string mcVersion,
         ForgeInstallOptions options)
     {
-        var versions = await _versionLoader.GetForgeVersions(mcVersion);
+        var versions = await _versionLoader.GetNeoForgeVersions(mcVersion);
         var bestVersion =
-            versions.FirstOrDefault(v => v.IsRecommendedVersion) ??
-            versions.FirstOrDefault(v => v.IsLatestVersion) ??
             versions.FirstOrDefault() ??
             throw new InvalidOperationException("Cannot find any version");
 
         return await Install(bestVersion, options);
     }
 
-    public Task<string> Install(string mcVersion, string forgeVersion) =>
-        Install(mcVersion, forgeVersion, new ForgeInstallOptions());
+    public Task<string> Install(string mcVersion, string neoForgeVersion) =>
+        Install(mcVersion, neoForgeVersion, new ForgeInstallOptions());
 
     public async Task<string> Install(
         string mcVersion,
-        string forgeVersion,
+        string neoForgeVersion,
         ForgeInstallOptions options)
     {
-        var versions = await _versionLoader.GetForgeVersions(mcVersion);
+        var versions = await _versionLoader.GetNeoForgeVersions(mcVersion);
 
-        var foundVersion = versions.FirstOrDefault(v => v.ForgeVersionName == forgeVersion) ??
-            throw new InvalidOperationException("Cannot find version name " + forgeVersion);
+        var foundVersion = versions.LastOrDefault(v => v.VersionName == neoForgeVersion) ??
+            throw new InvalidOperationException("Cannot find version name " + neoForgeVersion);
+        
         return await Install(foundVersion, options);
     }
 
     public async Task<string> Install(
-        ForgeVersion forgeVersion,
+        NeoForgeVersion neoForgeVersion,
         ForgeInstallOptions options)
     {
-        var installer = _installerMapper.CreateInstaller(forgeVersion);
+        var installer = _installerMapper.CreateInstaller(neoForgeVersion);
         if (options.SkipIfAlreadyInstalled && await checkVersionInstalled(installer.VersionName))
             return installer.VersionName;
 
         var version = await checkAndDownloadVanillaVersion(
-            forgeVersion.MinecraftVersionName, 
+            neoForgeVersion.MinecraftVersion, 
             options.FileProgress, 
             options.ByteProgress);
 
@@ -70,7 +69,7 @@ public class ForgeInstaller
             options.JavaPath = getJavaPath(version);
 
         await installer.Install(_launcher.MinecraftPath, _launcher.GameInstaller, options);
-        showAd();
+        
         await _launcher.GetAllVersionsAsync();
         return installer.VersionName;
     }

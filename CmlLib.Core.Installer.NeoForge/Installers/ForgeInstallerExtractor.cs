@@ -7,7 +7,7 @@ namespace CmlLib.Core.Installer.Forge.Installers;
 
 public class ForgeInstallerExtractor : IDisposable
 {
-    public static async Task<ForgeInstallerExtractor> DownloadAndExtractInstaller(ForgeVersion version, IGameInstaller installer, ForgeInstallOptions options)
+    public static async Task<ForgeInstallerExtractor> DownloadAndExtractInstaller(NeoForgeVersion version, IGameInstaller installer, ForgeInstallOptions options)
     {
         var installDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName()); //create folder in temp
         var installerJar = Path.Combine(installDir, "installer.jar");
@@ -15,7 +15,7 @@ public class ForgeInstallerExtractor : IDisposable
         if (string.IsNullOrEmpty(installerUrl))
             throw new InvalidOperationException("The forge version doesn't have installer url");
 
-        var file = new GameFile(version.ForgeVersionName)
+        var file = new GameFile(version.VersionName)
         {
             Path = installerJar,
             Url = installerUrl,

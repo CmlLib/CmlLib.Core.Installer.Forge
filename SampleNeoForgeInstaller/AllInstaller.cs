@@ -9,12 +9,12 @@ namespace SampleForgeInstaller;
 internal class AllInstaller
 {
     MinecraftLauncher _launcher;
-    ForgeInstaller _forge;
+    NeoForgeInstaller _neoForge;
 
     public AllInstaller()
     {
         _launcher = new MinecraftLauncher(new MinecraftPath());
-        _forge = new ForgeInstaller(_launcher);
+        _neoForge = new NeoForgeInstaller(_launcher);
     }
 
     public async Task InstallAll()
@@ -85,7 +85,7 @@ internal class AllInstaller
     public async Task InstallAndLaunch(string mcVersion)
     {
         Console.WriteLine("Minecraft: " + mcVersion);
-        var versionName = await _forge.Install(mcVersion, new ForgeInstallOptions
+        var versionName = await _neoForge.Install(mcVersion, new ForgeInstallOptions
         {
             FileProgress = new SyncProgress<InstallerProgressChangedEventArgs>(fileChanged),
             ByteProgress = new SyncProgress<ByteProgress>(progressChanged),

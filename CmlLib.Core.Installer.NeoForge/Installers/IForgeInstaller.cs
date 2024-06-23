@@ -6,6 +6,6 @@ namespace CmlLib.Core.Installer.Forge;
 public interface IForgeInstaller
 {
     string VersionName { get; }
-    ForgeVersion ForgeVersion { get; }
+    NeoForgeVersion NeoForgeVersion { get; }
     Task Install(MinecraftPath path, IGameInstaller installer, ForgeInstallOptions options);
 }

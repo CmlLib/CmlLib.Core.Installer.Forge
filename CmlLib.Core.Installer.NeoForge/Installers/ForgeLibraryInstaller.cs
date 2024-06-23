@@ -32,6 +32,7 @@ public class ForgeLibraryInstaller
     {
         var libs = ExtractLibraries(element);
         var files = ExtractGameFile(path, libs);
+        
         await _installer.Install(files, fileProgress, byteProgress, cancellationToken);
     }
 

@@ -167,6 +167,8 @@ public class ForgeInstallProcessor
                 if (string.IsNullOrEmpty(libNameString))
                     continue;
 
+                libNameString = libNameString.Replace("@jar", string.Empty);
+
                 var lib = Path.Combine(libraryPath,
                     PackageName.Parse(libNameString).GetPath());
                 classpath.Add(lib);
@@ -211,7 +213,10 @@ public class ForgeInstallProcessor
         };
 
         var p = new ProcessWrapper(process);
-        p.OutputReceived += (s, e) => javaOutput?.Report(e);
+        p.OutputReceived += (s, e) =>
+        {
+            javaOutput?.Report(e);
+        };
         p.StartWithEvents();
         await p.WaitForExitTaskAsync();
     }

@@ -7,6 +7,7 @@
 
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <RootNamespace>CmlLib.Core.Installer.Forge.Tests</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
@@ -23,7 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CmlLib.Core.Installer.Forge\CmlLib.Core.Installer.Forge.csproj" />
+    <ProjectReference Include="..\CmlLib.Core.Installer.NeoForge\CmlLib.Core.Installer.NeoForge.csproj" />
   </ItemGroup>
 
 </Project>

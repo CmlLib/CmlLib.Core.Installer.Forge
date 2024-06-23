@@ -3,11 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.33516.290
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CmlLib.Core.Installer.Forge", "CmlLib.Core.Installer.Forge\CmlLib.Core.Installer.Forge.csproj", "{82CFAAC1-8BA9-44FB-9BB1-056D7982B173}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CmlLib.Core.Installer.NeoForge", "CmlLib.Core.Installer.NeoForge\CmlLib.Core.Installer.NeoForge.csproj", "{82CFAAC1-8BA9-44FB-9BB1-056D7982B173}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SampleForgeInstaller", "SampleForgeInstaller\SampleForgeInstaller.csproj", "{C5B7CB25-5F2C-4441-85F6-71687BE84878}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SampleNeoForgeInstaller", "SampleNeoForgeInstaller\SampleNeoForgeInstaller.csproj", "{C5B7CB25-5F2C-4441-85F6-71687BE84878}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CmlLib.Core.Installer.Forge.Tests", "CmlLib.Core.Installer.Forge.Tests\CmlLib.Core.Installer.Forge.Tests.csproj", "{03A569CB-6C38-4C92-B6CA-DCEC13333648}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CmlLib.Core.Installer.NeoForge.Tests", "CmlLib.Core.Installer.NeoForge.Tests\CmlLib.Core.Installer.NeoForge.Tests.csproj", "{03A569CB-6C38-4C92-B6CA-DCEC13333648}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

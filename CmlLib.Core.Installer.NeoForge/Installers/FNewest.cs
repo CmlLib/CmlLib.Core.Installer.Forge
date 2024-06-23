@@ -2,20 +2,21 @@
 using CmlLib.Core.Installers;
 using CmlLib.Utils;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace CmlLib.Core.Installer.Forge.Installers;
 
 /* 1.12.2 - 1.20.* */
 public class FNewest : IForgeInstaller
 {
-    public FNewest(string versionName, ForgeVersion forgeVersion)
+    public FNewest(string versionName, NeoForgeVersion neoForgeVersion)
     {
         VersionName = versionName;
-        ForgeVersion = forgeVersion;
+        NeoForgeVersion = neoForgeVersion;
     }
 
     public string VersionName { get; }
-    public ForgeVersion ForgeVersion { get; }
+    public NeoForgeVersion NeoForgeVersion { get; }
 
     public async Task Install(MinecraftPath path, IGameInstaller installer, ForgeInstallOptions options)
     {
@@ -23,7 +24,7 @@ public class FNewest : IForgeInstaller
             throw new ArgumentNullException(nameof(options.JavaPath));
         var processor = new ForgeInstallProcessor(options.JavaPath);
 
-        using var extractor = await ForgeInstallerExtractor.DownloadAndExtractInstaller(ForgeVersion, installer, options);
+        using var extractor = await ForgeInstallerExtractor.DownloadAndExtractInstaller(NeoForgeVersion, installer, options);
         using var installerProfileStream = extractor.OpenInstallerProfile();
         using var installerProfile = await JsonDocument.ParseAsync(installerProfileStream);
 
@@ -31,7 +32,7 @@ public class FNewest : IForgeInstaller
         await installLibraries(installerProfile.RootElement, path, installer, options);
         await processor.MapAndStartProcessors(
             extractor.ExtractedDir, 
-            path.GetVersionJarPath(ForgeVersion.MinecraftVersionName), 
+            path.GetVersionJarPath(NeoForgeVersion.MinecraftVersion), 
             path.Library, 
             installerProfile.RootElement, 
             options.FileProgress,
@@ -68,12 +69,13 @@ public class FNewest : IForgeInstaller
     private async Task copyVersionFiles(string installerDir, MinecraftPath minecraftPath)
     {
         var versionJsonSource = Path.Combine(installerDir, "version.json");
+        RemoveHotfixLibraries(versionJsonSource);
         var versionJsonDest = minecraftPath.GetVersionJsonPath(VersionName);
         IOUtil.CreateDirectoryForFile(versionJsonDest);
         await IOUtil.CopyFileAsync(versionJsonSource, versionJsonDest);
 
-        var m = ForgeVersion.MinecraftVersionName;
-        var f = ForgeVersion.ForgeVersionName;
+        var m = NeoForgeVersion.MinecraftVersion;
+        var f = NeoForgeVersion.VersionName;
         var jar = Path.Combine(installerDir, $"maven/net/minecraftforge/forge/{m}-{f}/forge-{m}-{f}.jar");
         if (File.Exists(jar)) //fix 1.17+ 
         {
@@ -81,5 +83,37 @@ public class FNewest : IForgeInstaller
             IOUtil.CreateDirectoryForFile(jarPath);
             await IOUtil.CopyFileAsync(jar, jarPath);
         }
+    }
+
+    private void RemoveHotfixLibraries(string versionJsonSource)
+    {
+        string jsonString = File.ReadAllText(versionJsonSource);
+        using JsonDocument doc = JsonDocument.Parse(jsonString);
+        
+        var libraries = doc.RootElement.GetProperty("libraries").EnumerateArray()
+            .Where(item => item.GetProperty("name").GetString() != "org.apache.logging.log4j:log4j-slf4j2-impl:2.19.0@jar");
+        
+        var newLibraries = new JsonArray();
+        foreach (var library in libraries)
+        {
+            newLibraries.Add(JsonNode.Parse(library.GetRawText()));
+        }
+        
+        var root = new JsonObject();
+        foreach (var item in doc.RootElement.EnumerateObject())
+        {
+            if (item.Name == "libraries")
+            {
+                root.Add(item.Name, newLibraries);
+            }
+            else
+            {
+                root.Add(item.Name, JsonNode.Parse(item.Value.GetRawText())); // используем JsonNode.Parse, вместо JsonDocument.Parse
+            }
+        }
+        
+        string newJson = root.ToString();
+
+        File.WriteAllText(versionJsonSource, newJson);
     }
 }

@@ -2,5 +2,5 @@
 
 public interface IForgeInstallerVersionMapper
 {
-    IForgeInstaller CreateInstaller(ForgeVersion version);
+    IForgeInstaller CreateInstaller(NeoForgeVersion version);
 }
