@@ -12,11 +12,11 @@ public class NeoForgeVersion
         $"https://maven.neoforged.net/releases/net/neoforged/neoforge/{VersionName}/neoforge-{VersionName}-installer.jar";
     public string MinecraftVersion { get; set; }
     public string VersionName { get; }
-    public IEnumerable<ForgeVersionFile>? Files { get; set; }
+    public IEnumerable<NeoForgeVersionFile>? Files { get; set; }
 
-    public ForgeVersionFile? GetInstallerFile()
+    public NeoForgeVersionFile? GetInstallerFile()
     {
-        return new ForgeVersionFile
+        return new NeoForgeVersionFile
         {
             DirectUrl = NeoForgeUrl
         };

@@ -26,7 +26,6 @@
     </PropertyGroup>
     
     <ItemGroup>
-      <PackageReference Include="CmlLib.Core" Version="4.0.0-beta.2" />
       <PackageReference Include="HtmlAgilityPack" Version="1.11.48" />
     </ItemGroup>
 
@@ -43,5 +42,9 @@
     <ItemGroup>
         <None Include="../icon.png" Pack="true" Visible="false" PackagePath="" />
         <None Include="../README.md" Pack="true" Visible="false" PackagePath="" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\CmlLib.ExtendedCore\src\CmlLib.Core.csproj" />
     </ItemGroup>
 </Project>

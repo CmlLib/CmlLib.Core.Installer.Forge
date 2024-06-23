@@ -7,5 +7,5 @@ public interface IForgeInstaller
 {
     string VersionName { get; }
     NeoForgeVersion NeoForgeVersion { get; }
-    Task Install(MinecraftPath path, IGameInstaller installer, ForgeInstallOptions options);
+    Task Install(MinecraftPath path, IGameInstaller installer, NeoForgeInstallOptions options);
 }
