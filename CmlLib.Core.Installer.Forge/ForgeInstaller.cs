@@ -38,6 +38,11 @@ public class ForgeInstaller
         return await Install(bestVersion, options);
     }
 
+    public Task<IEnumerable<ForgeVersion>> GetForgeVersions(string mcVersion)
+    {
+        return _versionLoader.GetForgeVersions(mcVersion);
+    }
+
     public Task<string> Install(string mcVersion, string forgeVersion) =>
         Install(mcVersion, forgeVersion, new ForgeInstallOptions());
 
@@ -62,8 +67,8 @@ public class ForgeInstaller
             return installer.VersionName;
 
         var version = await checkAndDownloadVanillaVersion(
-            forgeVersion.MinecraftVersionName, 
-            options.FileProgress, 
+            forgeVersion.MinecraftVersionName,
+            options.FileProgress,
             options.ByteProgress);
 
         if (string.IsNullOrEmpty(options.JavaPath))
@@ -105,6 +110,7 @@ public class ForgeInstaller
             javaPath = _launcher.GetDefaultJavaPath();
         if (string.IsNullOrEmpty(javaPath) || !File.Exists(javaPath))
             throw new InvalidOperationException("Cannot find any java binary. Set java binary path");
+
         return javaPath;
     }
 
