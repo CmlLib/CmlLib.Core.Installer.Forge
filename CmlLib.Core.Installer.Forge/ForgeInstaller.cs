@@ -75,7 +75,7 @@ public class ForgeInstaller
             options.JavaPath = getJavaPath(version);
 
         await installer.Install(_launcher.MinecraftPath, _launcher.GameInstaller, options);
-        // showAd();
+        showAd();
         await _launcher.GetAllVersionsAsync();
         return installer.VersionName;
     }
