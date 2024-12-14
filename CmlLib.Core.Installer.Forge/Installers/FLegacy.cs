@@ -53,7 +53,7 @@ public class FLegacy : IForgeInstaller
             throw new InvalidOperationException("path property in installer was null");
 
         var universal = Path.Combine(installerDir, universalPath);
-        var desPath = PackageName.Parse(destPath).GetPath();
+        var desPath = ForgePackageName.GetPath(destPath, Path.DirectorySeparatorChar);
         var des = Path.Combine(path.Library, desPath);
         var jarPath = path.GetVersionJarPath(VersionName);
 

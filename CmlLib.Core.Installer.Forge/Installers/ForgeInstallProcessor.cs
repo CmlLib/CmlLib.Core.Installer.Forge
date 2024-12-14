@@ -48,7 +48,7 @@ public class ForgeInstallProcessor
             if (string.IsNullOrEmpty(value))
                 continue;
 
-            var fullPath = ForgeMapper.ToFullPath(value, libraryPath);
+            var fullPath = ForgeMapper.ToFullPath(value, libraryPath, Path.DirectorySeparatorChar);
             if (fullPath == value)
             {
                 value = value.Trim('/');
@@ -145,8 +145,7 @@ public class ForgeInstallProcessor
             return;
 
         // jar
-        var jar = PackageName.Parse(name);
-        var jarPath = Path.Combine(libraryPath, jar.GetPath());
+        var jarPath = Path.Combine(libraryPath, ForgePackageName.GetPath(name, Path.DirectorySeparatorChar));
         var jarFile = new JarFile(jarPath);
         var jarManifest = jarFile.GetManifest();
 
@@ -167,8 +166,7 @@ public class ForgeInstallProcessor
                 if (string.IsNullOrEmpty(libNameString))
                     continue;
 
-                var lib = Path.Combine(libraryPath,
-                    PackageName.Parse(libNameString).GetPath());
+                var lib = Path.Combine(libraryPath, ForgePackageName.GetPath(libNameString, Path.DirectorySeparatorChar));
                 classpath.Add(lib);
             }
         }
@@ -180,7 +178,7 @@ public class ForgeInstallProcessor
             argsProp.ValueKind == JsonValueKind.Array)
         {
             var arrStrs = argsProp.EnumerateArray().Select(x => x.ToString());
-            args = ForgeMapper.Map(arrStrs, mapData, libraryPath);
+            args = ForgeMapper.Map(arrStrs, mapData, libraryPath, Path.DirectorySeparatorChar);
         }
 
         await startJava(classpath, mainClass, args, processorOutput);

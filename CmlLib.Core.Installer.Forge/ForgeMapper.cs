@@ -6,26 +6,24 @@ public class ForgeMapper
 {
     private static readonly Regex argBracket = new Regex(@"\$?\{(.*?)}");
 
-    public static IEnumerable<string> Map(IEnumerable<string> arg, IReadOnlyDictionary<string, string?> dicts, string prepath)
+    public static IEnumerable<string> Map(
+        IEnumerable<string> arg, 
+        IReadOnlyDictionary<string, string?> dicts, 
+        string prepath,
+        char directorySeparator)
     {
         var checkPath = !string.IsNullOrEmpty(prepath);
         foreach (string item in arg)
         {
             var a = Interpolation(item, dicts, false);
             if (checkPath)
-                a = ToFullPath(a, prepath);
+                a = ToFullPath(a, prepath, directorySeparator);
             yield return HandleEmptyArg(a);
         }
     }
 
-    public static string ToFullPath(string str, string prepath)
+    public static string ToFullPath(string str, string prepath, char directorySeparator)
     {
-        // [de.oceanlabs.mcp:mcp_config:1.16.2-20200812.004259@zip]
-        // \libraries\de\oceanlabs\mcp\mcp_config\1.16.2-20200812.004259\mcp_config-1.16.2-20200812.004259.zip
-
-        // [net.minecraft:client:1.16.2-20200812.004259:slim]
-        // /libraries\net\minecraft\client\1.16.2-20200812.004259\client-1.16.2-20200812.004259-slim.jar
-
         if (str.StartsWith("[") && str.EndsWith("]") && !string.IsNullOrEmpty(prepath))
         {
             var innerStr = str.TrimStart('[').TrimEnd(']').Split('@');
@@ -35,8 +33,8 @@ public class ForgeMapper
             if (innerStr.Length > 1)
                 extension = innerStr[1];
 
-            return Path.Combine(prepath,
-                PackageName.Parse(pathName).GetPath(null, extension));
+            var packagePath = ForgePackageName.GetPath(pathName, extension, directorySeparator);
+            return $"{prepath}{directorySeparator}{packagePath}";
         }
         else if (str.StartsWith("\'") && str.EndsWith("\'"))
             return str.Trim('\'');

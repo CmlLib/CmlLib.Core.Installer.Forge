@@ -9,7 +9,7 @@
     </PropertyGroup>
     
     <PropertyGroup>
-        <Version>1.0.0-beta.1</Version>
+        <Version>1.0.1</Version>
         <Description>Minecraft Forge Installer</Description>
         <Copyright>Copyright (c) 2023 CmlLib</Copyright>
         <PackageProjectUrl>https://github.com/CmlLib/CmlLib.Core.Installer.Forge</PackageProjectUrl>
@@ -25,7 +25,7 @@
     </PropertyGroup>
     
     <ItemGroup>
-      <PackageReference Include="CmlLib.Core" Version="4.0.0-beta.2" />
+      <PackageReference Include="CmlLib.Core" Version="4.0.3" />
       <PackageReference Include="HtmlAgilityPack" Version="1.11.48" />
     </ItemGroup>
 
