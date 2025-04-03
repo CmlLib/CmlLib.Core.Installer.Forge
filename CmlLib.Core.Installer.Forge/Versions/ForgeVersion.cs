@@ -15,10 +15,9 @@ public class ForgeVersion
     public bool IsLatestVersion { get; set; }
     public bool IsRecommendedVersion { get; set; }
 
-    public ForgeVersionFile? GetInstallerFile()
-    {
-        if (Files == null)
-            return null;
-        return Files.FirstOrDefault(file => file.Type?.ToLowerInvariant() == "installer");
-    }
+    public ForgeVersionFile? GetInstallerFile() 
+        => Files?.FirstOrDefault(file => file.Type?.ToLowerInvariant() == "installer");
+
+    public ForgeVersionFile? GetUniversalFile() 
+        => Files?.FirstOrDefault(file => file.Type?.ToLowerInvariant() == "universal");
 }
