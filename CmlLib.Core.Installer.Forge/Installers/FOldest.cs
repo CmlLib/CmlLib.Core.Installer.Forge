@@ -95,18 +95,6 @@ public class FOldest : IForgeInstaller
         }
     }
 
-    // private async Task extractUniversal(MinecraftPath path)
-    // {
-    //     var jsonPath = path.GetVersionJsonPath(ForgeVersion.MinecraftVersionName);
-    //     var targetJsonPath = path.GetVersionJsonPath(VersionName);
-    //
-    //     if (File.Exists(jsonPath))
-    //     {
-    //         IOUtil.CreateDirectoryForFile(targetJsonPath);
-    //         await IOUtil.CopyFileAsync(jsonPath, targetJsonPath);
-    //     }
-    // }
-
     private Task compressJar(MinecraftPath path, ForgeInstallerExtractor vanillaExtractor)
     {
         var targetJar = path.GetVersionJarPath(VersionName);
