@@ -59,7 +59,7 @@ var launchOption = new MLaunchOption
     }
 };
 
-var process = await launcher.BuildProcessAsync(version_name, launchOption);
+var process = await launcher.CreateProcessAsync(version_name, launchOption);
 
 // print game logs
 var processUtil = new ProcessWrapper(process);
