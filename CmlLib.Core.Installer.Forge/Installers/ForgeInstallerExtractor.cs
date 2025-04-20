@@ -1,30 +1,61 @@
 ﻿using CmlLib.Core.Files;
 using CmlLib.Core.Installer.Forge.Versions;
 using CmlLib.Core.Installers;
+using CmlLib.Utils;
 using ICSharpCode.SharpZipLib.Zip;
 
 namespace CmlLib.Core.Installer.Forge.Installers;
 
 public class ForgeInstallerExtractor : IDisposable
 {
-    public static async Task<ForgeInstallerExtractor> DownloadAndExtractInstaller(ForgeVersion version, IGameInstaller installer, ForgeInstallOptions options)
+    public static Task<ForgeInstallerExtractor> DownloadAndExtractInstaller(ForgeVersion version,
+        IGameInstaller installer, ForgeInstallOptions options)
     {
-        var installDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName()); //create folder in temp
-        var installerJar = Path.Combine(installDir, "installer.jar");
-        var installerUrl = version.GetInstallerFile()?.DirectUrl;
+        return DownloadAndExtract(
+            version,
+            installer,
+            options,
+            "installer.jar",
+            version.GetInstallerFile()?.DirectUrl
+        );
+    }
+
+    public static Task<ForgeInstallerExtractor> DownloadAndExtractUniversalInstaller(ForgeVersion version,
+        IGameInstaller installer, ForgeInstallOptions options)
+    {
+        return DownloadAndExtract(
+            version,
+            installer,
+            options,
+            "installer.zip",
+            version.GetUniversalFile()?.DirectUrl
+        );
+    }
+
+    private static async Task<ForgeInstallerExtractor> DownloadAndExtract(
+        ForgeVersion version,
+        IGameInstaller installer,
+        ForgeInstallOptions options,
+        string installerFileName,
+        string? installerUrl)
+    {
         if (string.IsNullOrEmpty(installerUrl))
             throw new InvalidOperationException("The forge version doesn't have installer url");
 
+        var installDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName()); //create folder in temp
+        var installerPath = Path.Combine(installDir, installerFileName);
+
         var file = new GameFile(version.ForgeVersionName)
         {
-            Path = installerJar,
+            Path = installerPath,
             Url = installerUrl,
             Hash = "",
         };
+
         await installer.Install([file], options.FileProgress, options.ByteProgress, options.CancellationToken);
 
         var zip = new FastZip();
-        zip.ExtractZip(installerJar, installDir, null);
+        zip.ExtractZip(installerPath, installDir, null);
         return new ForgeInstallerExtractor(installDir);
     }
 
@@ -68,5 +99,16 @@ public class ForgeInstallerExtractor : IDisposable
     {
         Dispose(disposing: true);
         GC.SuppressFinalize(this);
+    }
+
+    public static async Task<ForgeInstallerExtractor> GetVanillaExtractor(ForgeVersion forgeVersion, MinecraftPath path)
+    {
+        var installDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName()); //create folder in temp
+        var sourceJarPath = path.GetVersionJarPath(forgeVersion.MinecraftVersionName);
+        var installerPath = Path.Combine(installDir, sourceJarPath);
+        var zip = new FastZip();
+        zip.ExtractZip(installerPath, installDir, null);
+        IOUtil.DeleteDirectory(Path.Combine(installDir, "META-INF"));
+        return new ForgeInstallerExtractor(installDir);
     }
 }
