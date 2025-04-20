@@ -14,10 +14,15 @@ public class ForgeInstaller
     private readonly IForgeInstallerVersionMapper _installerMapper;
     private readonly ForgeVersionLoader _versionLoader;
 
-    public ForgeInstaller(MinecraftLauncher launcher)
+    public ForgeInstaller(MinecraftLauncher launcher) : this(launcher, HttpUtil.DefaultClient.Value)
+    {
+
+    }
+
+    public ForgeInstaller(MinecraftLauncher launcher, HttpClient httpClient)
     {
         _installerMapper = new ForgeInstallerVersionMapper();
-        _versionLoader = new ForgeVersionLoader(new HttpClient());
+        _versionLoader = new ForgeVersionLoader(httpClient);
         _launcher = launcher;
     }
 

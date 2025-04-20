@@ -2,6 +2,8 @@
 
 internal class HttpUtil
 {
+    public static readonly Lazy<HttpClient> DefaultClient = new(() => new HttpClient());
+
     public static async Task DownloadFile(HttpClient httpClient, string url, string dest)
     {
         var dirPath = Path.GetDirectoryName(dest);
