@@ -75,7 +75,7 @@ public class FLegacy : IForgeInstaller
         if (installerProfile.TryGetProperty("libraries", out var libraryProp) &&
             libraryProp.ValueKind == JsonValueKind.Array)
         {
-            var libraryInstaller = new ForgeLibraryInstaller(installer, options.RulesContext, MojangServer.Library);
+            var libraryInstaller = new ForgeLibraryInstaller(installer, options.RulesEvaluator, options.RulesContext, MojangServer.Library);
             await libraryInstaller.Install(
                 path,
                 libraryProp,

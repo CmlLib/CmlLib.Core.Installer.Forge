@@ -9,16 +9,19 @@ namespace CmlLib.Core.Installer.Forge.Installers;
 
 public class ForgeLibraryInstaller
 {
+    private readonly IRulesEvaluator _rulesEvaluator;
     private readonly RulesEvaluatorContext _rulesContext;
     private readonly IGameInstaller _installer;
     private readonly string _libraryServer;
 
     public ForgeLibraryInstaller(
-        IGameInstaller installer, 
+        IGameInstaller installer,
+        IRulesEvaluator rulesEvaluator,
         RulesEvaluatorContext context, 
         string libraryServer)
     {
         _installer = installer;
+        _rulesEvaluator = rulesEvaluator;
         _rulesContext = context;
         _libraryServer = libraryServer;
     }
@@ -50,7 +53,9 @@ public class ForgeLibraryInstaller
 
     public IEnumerable<GameFile> ExtractGameFile(MinecraftPath path, IEnumerable<MLibrary> libraries)
     {
-        return libraries.SelectMany(library => 
-            LibraryFileExtractor.Extractor.ExtractTasks(_libraryServer, path, library, _rulesContext));
+        return libraries
+            .Where(library => _rulesEvaluator.Match(library.Rules, _rulesContext))
+            .SelectMany(library => LibraryFileExtractor.Extractor
+                .ExtractTasks(_libraryServer, path, library, _rulesContext));
     }
 }
