@@ -6,6 +6,7 @@ using ICSharpCode.SharpZipLib.Zip;
 
 namespace CmlLib.Core.Installer.Forge.Installers;
 
+/* 1.5.2 ~ 1.7.2 */
 public class FOldest : IForgeInstaller
 {
     public FOldest(string versionName, ForgeVersion forgeVersion)
@@ -23,19 +24,14 @@ public class FOldest : IForgeInstaller
         using var extractor = await ForgeInstallerExtractor.DownloadAndExtractInstaller(ForgeVersion, installer, options);
         using var installerProfileStream = extractor.OpenInstallerProfile();
         using var installerProfile = await JsonDocument.ParseAsync(installerProfileStream);
-        using var vanillaExtractor = await ForgeInstallerExtractor.GetVanillaExtractor(ForgeVersion, path);
-        using var forgeExtractor =
-            await ForgeInstallerExtractor.DownloadAndExtractUniversalInstaller(ForgeVersion, installer, options);
-        await IOUtil.CopyDirectory(forgeExtractor.ExtractedDir, vanillaExtractor.ExtractedDir);
 
-        var version = extractVersionJson(installerProfile.RootElement);
-        
-        await extractUniversal(path, extractor.ExtractedDir, installerProfile.RootElement);
+        var universalPath = getUniversalPath(installerProfile.RootElement, extractor.ExtractedDir);
+        await copyUniversal(path, universalPath, installerProfile.RootElement);
+        patchVanillaJar(path, universalPath);
         await installLibraries(installerProfile.RootElement, path, installer, options);
 
-        // await extractUniversal(path);
+        var version = extractVersionJson(installerProfile.RootElement);
         await writeVersionJson(path, version);
-        await compressJar(path, vanillaExtractor);
     }
     
     private async Task installLibraries(
@@ -70,38 +66,43 @@ public class FOldest : IForgeInstaller
 
         return version;
     }
-    
-    private async Task extractUniversal(MinecraftPath path, string installerDir, JsonElement installerProfile)
-    {
-        var destPath = installerProfile.GetPropertyOrNull("install")?.GetPropertyValue("path");
-        var universalPath = installerProfile.GetPropertyOrNull("install")?.GetPropertyValue("filePath");
 
+    private string getUniversalPath(JsonElement installerProfile, string installerDir)
+    {
+        var universalPath = installerProfile.GetPropertyOrNull("install")?.GetPropertyValue("filePath");
         if (string.IsNullOrEmpty(universalPath))
             throw new InvalidOperationException("filePath property in installer was null");
-        if (string.IsNullOrEmpty(destPath))
+        universalPath = Path.Combine(installerDir, universalPath);
+        return universalPath;
+    }
+    
+    private async Task copyUniversal(MinecraftPath path, string universalPath, JsonElement installerProfile)
+    {
+        var targetPath = installerProfile.GetPropertyOrNull("install")?.GetPropertyValue("path");
+        if (string.IsNullOrEmpty(targetPath))
             throw new InvalidOperationException("path property in installer was null");
+        targetPath = ForgePackageName.GetPath(targetPath, Path.DirectorySeparatorChar);
+        targetPath = Path.Combine(path.Library, targetPath);
 
-        var universal = Path.Combine(installerDir, universalPath);
-        var desPath = ForgePackageName.GetPath(destPath, Path.DirectorySeparatorChar);
-        var des = Path.Combine(path.Library, desPath);
-        var jarPath = path.GetVersionJarPath(VersionName);
-
-        if (File.Exists(universal))
+        if (File.Exists(universalPath))
         {
-            IOUtil.CreateDirectoryForFile(jarPath);
-            IOUtil.CreateDirectoryForFile(des);
-            await IOUtil.CopyFileAsync(universal, des);
-            await IOUtil.CopyFileAsync(universal, jarPath);
+            IOUtil.CreateDirectoryForFile(targetPath);
+            await IOUtil.CopyFileAsync(universalPath, targetPath);
         }
     }
 
-    private Task compressJar(MinecraftPath path, ForgeInstallerExtractor vanillaExtractor)
+    private void patchVanillaJar(MinecraftPath path, string universalPath)
     {
-        var targetJar = path.GetVersionJarPath(VersionName);
-        var zip = new FastZip();
-        zip.CreateZip(targetJar, vanillaExtractor.ExtractedDir, true, @"^(?!.*\.zip).*$");
+        var vanillaJarPath = path.GetVersionJarPath(ForgeVersion.MinecraftVersionName);
+        using var vanillaJarPatcher = JarPatcher.Extract(vanillaJarPath);
+        vanillaJarPatcher.DeleteMetaInf();
 
-        return Task.CompletedTask;
+        var zip = new FastZip();
+        zip.ExtractZip(universalPath, vanillaJarPatcher.ExtractedPath, null);
+
+        var forgeJarPath = path.GetVersionJarPath(VersionName);
+        IOUtil.CreateDirectoryForFile(forgeJarPath);
+        vanillaJarPatcher.CompressToJar(forgeJarPath);
     }
 
     private async Task writeVersionJson(MinecraftPath path, JsonElement version)

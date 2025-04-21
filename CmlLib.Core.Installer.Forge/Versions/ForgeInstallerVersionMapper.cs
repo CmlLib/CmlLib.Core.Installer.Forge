@@ -23,11 +23,20 @@ public class ForgeInstallerVersionMapper : IForgeInstallerVersionMapper
 
         return (major, minor) switch
         {
-            (1, <= 6) => (m ,f) switch // oldest version ~ 1.6.*
-            { 
+            (1, <= 4) => (m, f) switch // oldest version ~ 1.4.7
+            {
+                _ => CreateOldInstaller($"{m}-Forge{f}", version)
+            },
+            (1, 5) => (m, f) switch // 1.5.x
+            {
+                ("1.5.2", _) => CreateOldInstaller($"1.5.2-Forge{f}", version),
+                _ => CreateOldInstaller($"{m}-Forge{f}", version)
+            },
+            (1, 6) => (m, f) switch // 1.6.x
+            {
                 ("1.6.1", _) => CreateOldInstaller($"Forge{f}", version),
                 _ => CreateOldInstaller($"{m}-Forge{f}", version)
-            }, 
+            },
             (1, <= 12) => (m, f) switch // 1.7.2 ~ 1.12.2
             {
                 ("1.7.2", _) => CreateOldInstaller($"1.7.2-Forge{f}-mc172", version),

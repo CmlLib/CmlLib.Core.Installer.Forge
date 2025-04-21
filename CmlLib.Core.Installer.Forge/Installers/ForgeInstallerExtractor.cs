@@ -100,15 +100,4 @@ public class ForgeInstallerExtractor : IDisposable
         Dispose(disposing: true);
         GC.SuppressFinalize(this);
     }
-
-    public static async Task<ForgeInstallerExtractor> GetVanillaExtractor(ForgeVersion forgeVersion, MinecraftPath path)
-    {
-        var installDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName()); //create folder in temp
-        var sourceJarPath = path.GetVersionJarPath(forgeVersion.MinecraftVersionName);
-        var installerPath = Path.Combine(installDir, sourceJarPath);
-        var zip = new FastZip();
-        zip.ExtractZip(installerPath, installDir, null);
-        IOUtil.DeleteDirectory(Path.Combine(installDir, "META-INF"));
-        return new ForgeInstallerExtractor(installDir);
-    }
 }
