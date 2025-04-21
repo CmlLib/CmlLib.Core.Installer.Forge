@@ -7,9 +7,9 @@ using ICSharpCode.SharpZipLib.Zip;
 namespace CmlLib.Core.Installer.Forge.Installers;
 
 /* 1.5.2 ~ 1.7.2 */
-public class FOldest : IForgeInstaller
+public class ForgeV5Installer : IForgeInstaller
 {
-    public FOldest(string versionName, ForgeVersion forgeVersion)
+    public ForgeV5Installer(string versionName, ForgeVersion forgeVersion)
     {
         VersionName = versionName;
         ForgeVersion = forgeVersion;

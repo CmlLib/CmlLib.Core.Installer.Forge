@@ -6,9 +6,9 @@ using System.Text.Json;
 namespace CmlLib.Core.Installer.Forge.Installers;
 
 /* 1.7.10 - 1.11.2 */
-public class FLegacy : IForgeInstaller
+public class ForgeV7Installer : IForgeInstaller
 {
-    public FLegacy(string versionName, ForgeVersion forgeVersion)
+    public ForgeV7Installer(string versionName, ForgeVersion forgeVersion)
     {
         VersionName = versionName;
         ForgeVersion = forgeVersion;
