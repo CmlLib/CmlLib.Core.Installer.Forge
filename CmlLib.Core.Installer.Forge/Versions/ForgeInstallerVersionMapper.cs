@@ -4,6 +4,9 @@ namespace CmlLib.Core.Installer.Forge.Versions;
 
 public class ForgeInstallerVersionMapper : IForgeInstallerVersionMapper
 {
+    public IForgeInstaller CreateUniversal(string versionName, ForgeVersion version) =>
+        new ForgeUniversalInstaller(versionName, version);
+
     public IForgeInstaller CreateV5(string versionName, ForgeVersion version) =>
         new ForgeV5Installer(versionName, version);
 
@@ -25,12 +28,12 @@ public class ForgeInstallerVersionMapper : IForgeInstallerVersionMapper
         {
             (1, <= 4) => (m, f) switch // oldest version ~ 1.4.7
             {
-                _ => CreateV5($"{m}-Forge{f}", version)
+                _ => CreateUniversal($"{m}-Forge{f}", version)
             },
             (1, 5) => (m, f) switch // 1.5.x
             {
                 ("1.5.2", _) => CreateV5($"1.5.2-Forge{f}", version),
-                _ => CreateV5($"{m}-Forge{f}", version)
+                _ => CreateUniversal($"{m}-Forge{f}", version)
             },
             (1, 6) => (m, f) switch // 1.6.x
             {
