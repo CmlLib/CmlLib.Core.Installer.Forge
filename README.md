@@ -13,7 +13,7 @@ Forge Installer for [CmlLib.Core](https://github.com/CmlLib/CmlLib.Core)
 
 ## Supported Forge Versions
 
-**1.7.10 ~ 1.20.1** forge versions was successfully tested. [All test results](https://alphabs.gitbook.io/cmllib/installer.forge/supported-versions)
+**1.7.10 ~ 1.20.1** forge versions was successfully tested. [All test results](https://cmllib.github.io/CmlLib.Core-wiki/en/installer.forge/supported-versions/)
 
 ## Install
 
@@ -21,9 +21,9 @@ Install the [CmlLib.Core.Installer.Forge Nuget package](https://www.nuget.org/pa
 
 or download the nupkg in [Releases](https://github.com/CmlLib/CmlLib.Core.Installer.Forge/releases) and add references to them in your project.
 
-## [Documentation](https://alphabs.gitbook.io/cmllib/installer.forge/home)
+## [Documentation](https://cmllib.github.io/CmlLib.Core-wiki/en/installer.forge/)
 
-[Usages and Examples](https://alphabs.gitbook.io/cmllib/installer.forge/home)
+[Usages and Examples](https://cmllib.github.io/CmlLib.Core-wiki/en/installer.forge/)
 
 ## Contributors
 
