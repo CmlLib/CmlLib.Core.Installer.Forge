@@ -21,8 +21,8 @@ var installerOutput = new SyncProgress<string>(e =>
     Console.WriteLine(e));
 
 //Initialize variables with the Minecraft version and the Forge version
-var mcVersion = "1.21";
-var forgeVersion = "21.0.24-beta";
+var mcVersion = "1.21.10";
+var forgeVersion = "21.10.20-beta";
 
 //Initialize MForge
 var forge = new NeoForgeInstaller(launcher);
