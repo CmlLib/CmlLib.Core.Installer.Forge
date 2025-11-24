@@ -122,7 +122,14 @@ public class ForgeInstaller
     private void showAd()
     {
         //########################AD URL##############################
-        Process.Start(new ProcessStartInfo(ForgeAdUrl) { UseShellExecute = true });
+        try
+        {
+            Process.Start(new ProcessStartInfo(ForgeAdUrl) { UseShellExecute = true });
+        }
+        catch
+        {
+            // ignore when url open failed
+        }
         //########################AD URL##############################
     }
 }
