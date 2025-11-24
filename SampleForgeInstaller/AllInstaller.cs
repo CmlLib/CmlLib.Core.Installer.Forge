@@ -108,7 +108,7 @@ internal class AllInstaller
             InstallerOutput = new SyncProgress<string>(logOutput),
             SkipIfAlreadyInstalled = false
         });
-        var process = await _launcher.CreateProcessAsync(versionName, new MLaunchOption
+        var process = await _launcher.InstallAndBuildProcessAsync(versionName, new MLaunchOption
         {
             Session = MSession.CreateOfflineSession("tester123"),
             ExtraJvmArguments = new[]
