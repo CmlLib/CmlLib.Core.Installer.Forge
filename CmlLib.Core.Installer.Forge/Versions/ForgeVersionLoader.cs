@@ -2,7 +2,7 @@
 
 namespace CmlLib.Core.Installer.Forge.Versions;
 
-public class ForgeVersionLoader
+public class ForgeVersionLoader : IForgeVersionLoader
 {
     private readonly HttpClient _httpClient;
 

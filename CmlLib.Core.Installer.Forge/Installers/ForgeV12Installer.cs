@@ -1,42 +1,41 @@
-﻿using CmlLib.Core.Installer.Forge.Versions;
 using CmlLib.Core.Installers;
 using CmlLib.Utils;
 using System.Text.Json;
 
 namespace CmlLib.Core.Installer.Forge.Installers;
 
-/* 1.12.2 - 1.20.* */
+/* 1.7.10 - 1.11.2 */
 public class ForgeV12Installer : IForgeInstaller
 {
-    public ForgeV12Installer(string versionName, ForgeVersion forgeVersion)
+    public ForgeV12Installer(ForgeV12VersionArtifact artifact)
     {
-        VersionName = versionName;
-        ForgeVersion = forgeVersion;
+        VersionArtifact = artifact;
     }
 
-    public string VersionName { get; }
-    public ForgeVersion ForgeVersion { get; }
+    public string VersionName => VersionArtifact.VersionName;
+    public ForgeV12VersionArtifact VersionArtifact { get; }
 
     public async Task Install(MinecraftPath path, IGameInstaller installer, ForgeInstallOptions options)
     {
         if (string.IsNullOrEmpty(options.JavaPath))
             throw new ArgumentNullException(nameof(options.JavaPath));
+        var artifact = VersionArtifact;
         var processor = new ForgeInstallProcessor(options.JavaPath);
 
-        using var extractor = await ForgeInstallerExtractor.DownloadAndExtractInstaller(ForgeVersion, installer, options);
+        using var extractor = await ForgeInstallerExtractor.DownloadAndExtractInstaller(artifact, installer, options);
         using var installerProfileStream = extractor.OpenInstallerProfile();
         using var installerProfile = await JsonDocument.ParseAsync(installerProfileStream);
 
         await extractMavens(extractor.ExtractedDir, path);
         await installLibraries(installerProfile.RootElement, path, installer, options);
         await processor.MapAndStartProcessors(
-            extractor.ExtractedDir, 
-            path.GetVersionJarPath(ForgeVersion.MinecraftVersionName), 
-            path.Library, 
-            installerProfile.RootElement, 
+            extractor.ExtractedDir,
+            path.GetVersionJarPath(artifact.MinecraftVersion),
+            path.Library,
+            installerProfile.RootElement,
             options.FileProgress,
             options.InstallerOutput);
-        await copyVersionFiles(extractor.ExtractedDir, path);
+        await copyVersionFiles(extractor.ExtractedDir, path, artifact);
     }
 
     private async Task extractMavens(string installerPath, MinecraftPath minecraftPath)
@@ -65,17 +64,17 @@ public class ForgeV12Installer : IForgeInstaller
         }
     }
 
-    private async Task copyVersionFiles(string installerDir, MinecraftPath minecraftPath)
+    private async Task copyVersionFiles(string installerDir, MinecraftPath minecraftPath, ForgeV12VersionArtifact artifact)
     {
         var versionJsonSource = Path.Combine(installerDir, "version.json");
         var versionJsonDest = minecraftPath.GetVersionJsonPath(VersionName);
         IOUtil.CreateDirectoryForFile(versionJsonDest);
         await IOUtil.CopyFileAsync(versionJsonSource, versionJsonDest);
 
-        var m = ForgeVersion.MinecraftVersionName;
-        var f = ForgeVersion.ForgeVersionName;
-        var jar = Path.Combine(installerDir, $"maven/net/minecraftforge/forge/{m}-{f}/forge-{m}-{f}.jar");
-        if (File.Exists(jar)) //fix 1.17+ 
+        if (string.IsNullOrEmpty(artifact.EmbeddedVersionJar))
+            return;
+        var jar = Path.Combine(installerDir, artifact.EmbeddedVersionJar);
+        if (File.Exists(jar)) //fix 1.17+
         {
             var jarPath = minecraftPath.GetVersionJarPath(VersionName);
             IOUtil.CreateDirectoryForFile(jarPath);

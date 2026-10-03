@@ -1,4 +1,4 @@
-﻿using CmlLib.Core.Installer.Forge.Installers;
+using CmlLib.Core.Installer.Forge.Installers;
 
 namespace CmlLib.Core.Installer.Forge.Versions;
 
@@ -10,11 +10,21 @@ public class ForgeInstallerVersionMapper : IForgeInstallerVersionMapper
     public IForgeInstaller CreateV5(string versionName, ForgeVersion version) =>
         new ForgeV5Installer(versionName, version);
 
-    public IForgeInstaller CreateV7(string versionName, ForgeVersion version) => 
+    public IForgeInstaller CreateV7(string versionName, ForgeVersion version) =>
         new ForgeV7Installer(versionName, version);
 
-    public IForgeInstaller Create12(string versionName, ForgeVersion version) =>
-        new ForgeV12Installer(versionName, version);
+    public IForgeInstaller Create12(string versionName, ForgeVersion version)
+    {
+        var m = version.MinecraftVersionName;
+        var f = version.ForgeVersionName;
+        var artifact = new ForgeV12VersionArtifact(
+            MinecraftVersion: m,
+            LoaderVersion: f,
+            VersionName: versionName,
+            InstallerUrl: version.GetInstallerFile()?.DirectUrl,
+            EmbeddedVersionJar: $"maven/net/minecraftforge/forge/{m}-{f}/forge-{m}-{f}.jar");
+        return new ForgeV12Installer(artifact);
+    }
 
     public IForgeInstaller CreateInstaller(ForgeVersion version)
     {
@@ -63,7 +73,7 @@ public class ForgeInstallerVersionMapper : IForgeInstallerVersionMapper
                 ("1.12.2", _) => Create12($"1.12.2-forge-{f}", version),
 
                 _ => CreateV7(mf(m, f), version)
-            }, 
+            },
             _ => Create12($"{m}-forge-{f}", version) // 1.13.* ~ latest version
         };
     }

@@ -1,6 +1,5 @@
-﻿using CmlLib.Core.Installer.Forge.Versions;
-using CmlLib.Core.Installers;
-using CmlLib.Core.Version;
+using CmlLib.Core.Installer.Forge.Versions;
+using CmlLib.Core.Installer.Forge.Internal;
 using System.Diagnostics;
 
 namespace CmlLib.Core.Installer.Forge;
@@ -10,9 +9,9 @@ public class ForgeInstaller
     public static readonly string ForgeAdUrl =
         "https://adfoc.us/serve/sitelinks/?id=271228&url=https://maven.minecraftforge.net/";
 
-    private readonly MinecraftLauncher _launcher;
+    private readonly InstallerRunner _runner;
     private readonly IForgeInstallerVersionMapper _installerMapper;
-    private readonly ForgeVersionLoader _versionLoader;
+    private readonly IForgeVersionLoader _versionLoader;
 
     public ForgeInstaller(MinecraftLauncher launcher) : this(launcher, HttpUtil.DefaultClient.Value)
     {
@@ -20,10 +19,18 @@ public class ForgeInstaller
     }
 
     public ForgeInstaller(MinecraftLauncher launcher, HttpClient httpClient)
+        : this(launcher, new ForgeVersionLoader(httpClient), new ForgeInstallerVersionMapper())
     {
-        _installerMapper = new ForgeInstallerVersionMapper();
-        _versionLoader = new ForgeVersionLoader(httpClient);
-        _launcher = launcher;
+    }
+
+    public ForgeInstaller(
+        MinecraftLauncher launcher,
+        IForgeVersionLoader versionLoader,
+        IForgeInstallerVersionMapper installerMapper)
+    {
+        _versionLoader = versionLoader;
+        _installerMapper = installerMapper;
+        _runner = new InstallerRunner(launcher);
     }
 
     public Task<string> Install(string mcVersion) =>
@@ -63,60 +70,10 @@ public class ForgeInstaller
         return await Install(foundVersion, options);
     }
 
-    public async Task<string> Install(
-        ForgeVersion forgeVersion,
-        ForgeInstallOptions options)
+    public Task<string> Install(ForgeVersion forgeVersion, ForgeInstallOptions options)
     {
         var installer = _installerMapper.CreateInstaller(forgeVersion);
-        if (options.SkipIfAlreadyInstalled && await checkVersionInstalled(installer.VersionName))
-            return installer.VersionName;
-
-        var version = await checkAndDownloadVanillaVersion(
-            forgeVersion.MinecraftVersionName,
-            options.FileProgress,
-            options.ByteProgress);
-
-        if (string.IsNullOrEmpty(options.JavaPath))
-            options.JavaPath = getJavaPath(version);
-
-        await installer.Install(_launcher.MinecraftPath, _launcher.GameInstaller, options);
-        showAd();
-        await _launcher.GetAllVersionsAsync();
-        return installer.VersionName;
-    }
-
-    private async Task<IVersion> checkAndDownloadVanillaVersion(
-        string mcVersion,
-        IProgress<InstallerProgressChangedEventArgs>? fileProgress,
-        IProgress<ByteProgress>? byteProgress)
-    {
-        var version = await _launcher.GetVersionAsync(mcVersion);
-        await _launcher.InstallAsync(version, fileProgress, byteProgress);
-        return version;
-    }
-
-    private async Task<bool> checkVersionInstalled(string versionName)
-    {
-        try
-        {
-            await _launcher.GetVersionAsync(versionName);
-            return true;
-        }
-        catch (KeyNotFoundException)
-        {
-            return false;
-        }
-    }
-
-    private string getJavaPath(IVersion version)
-    {
-        var javaPath = _launcher.GetJavaPath(version);
-        if (string.IsNullOrEmpty(javaPath) || !File.Exists(javaPath))
-            javaPath = _launcher.GetDefaultJavaPath();
-        if (string.IsNullOrEmpty(javaPath) || !File.Exists(javaPath))
-            throw new InvalidOperationException("Cannot find any java binary. Set java binary path");
-
-        return javaPath;
+        return _runner.Install(forgeVersion.MinecraftVersionName, installer, options, showAd);
     }
 
     private void showAd()
