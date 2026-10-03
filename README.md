@@ -65,9 +65,9 @@ the `ForgeV12Installer` constructor and property using `ForgeVersion` are remove
 
 `NeoForgeInstaller` handles discovery and version selection. `NeoForgeVersionMapper`
 parses catalog names into the data-only `NeoForgeVersion` record and normalizes
-Minecraft versions. `NeoForgeInstallerVersionMapper` converts that record into
-`ForgeV12VersionArtifact`; its `CreateInstaller` method creates `ForgeV12Installer`
-from the artifact. Both Forge and NeoForge use this engine for installer profiles,
+Minecraft versions. `NeoForgeInstaller` converts that record into
+`ForgeV12VersionArtifact` and creates `ForgeV12Installer` from the artifact.
+Both Forge and NeoForge use this engine for installer profiles,
 libraries, processors, and optional embedded version JARs.
 
 An internal `InstallerRunner` shares the installed-version check, vanilla preparation,
@@ -81,7 +81,8 @@ Its existing constructors provide default implementations; the constructor takin
 allows callers to supply their own implementations.
 
 Catalog, mapper, facade, and installer-profile fixture tests cover the integration.
-Actual NeoForge processor execution still needs integration validation.
+The sample tester below executes actual NeoForge processors and verifies installed
+libraries and version metadata. It does not launch Minecraft.
 
 ## Contributors
 
@@ -92,3 +93,27 @@ Actual NeoForge processor execution still needs integration validation.
 Made with [contrib.rocks](https://contrib.rocks).
 
 Special thanks to [TaigoStudio](https://github.com/TaigoStudio) for contributing almost entire source codes.
+
+## NeoForge installation tester
+
+`SampleForgeInstaller/NeoForgeInstallTester.cs` installs the first catalog release
+in reverse server order for each of the 22 editable Minecraft versions. It performs
+real Java processor execution, completes runtime libraries, checks declared library
+files and SHA-1 hashes, and exports only the loader's `versions` and `libraries`.
+Game assets are omitted because this tester verifies installation, not game launch.
+
+```sh
+dotnet run --project SampleForgeInstaller -- --neoforge-test
+# Inspect the selected versions without installing:
+dotnet run --project SampleForgeInstaller -- --neoforge-test --plan-only
+# Retry the saved plan using the installation cache:
+dotnet run --project SampleForgeInstaller -- --neoforge-test --resume
+# Restrict the saved plan to one Minecraft release:
+dotnet run --project SampleForgeInstaller -- --neoforge-test --resume --minecraft 1.21.1
+```
+
+Outputs default to `neoforge-installations/minecraft-<mc>-neoforge-<loader>/`.
+The shared work cache and per-version logs live in `neoforge-installations.cache/`;
+`installation-results.json` records successes and failures. `--output`, `--cache`,
+and `--java` override the corresponding paths. A failed installation returns a
+nonzero exit code while allowing the remaining targets to run.

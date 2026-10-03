@@ -396,3 +396,7 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+# Local NeoForge integration test outputs
+/neoforge-installations/
+/neoforge-installations.cache/
