@@ -212,5 +212,7 @@ public class ForgeInstallProcessor
         p.OutputReceived += (s, e) => javaOutput?.Report(e);
         p.StartWithEvents();
         await p.WaitForExitTaskAsync();
+        if (process.ExitCode != 0)
+            throw new InvalidOperationException($"Installer processor {mainClass} exited with code {process.ExitCode}.");
     }
 }

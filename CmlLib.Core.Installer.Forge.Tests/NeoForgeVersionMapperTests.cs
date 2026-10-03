@@ -16,6 +16,8 @@ public class NeoForgeVersionMapperTests
     [InlineData("26.1.0.0-alpha.1+snapshot-1", "26.1")]
     [InlineData("neoforge-21.1.100", "1.21.1")]
     [InlineData("neoforge-26.1.2.114-preview", "26.1.2")]
+    [InlineData("0.25w14craftmine.5-beta", "25w14craftmine")]
+    [InlineData("neoforge-0.25w14craftmine.5-beta", "25w14craftmine")]
     public void MapsNumericAndPrefixedReleaseNames(string name, string expected)
     {
         Assert.Equal(expected, NeoForgeVersionMapper.MapMinecraftVersion(name));
@@ -33,6 +35,7 @@ public class NeoForgeVersionMapperTests
     [InlineData("26.1..114")]
     [InlineData("99999999999999999999.1.2")]
     [InlineData("21.1.99999999999999999999")]
+    [InlineData("0.25w14craftmine.invalid")]
     public void UnrecognizedNamesThrowWithOriginalReleaseName(string name)
     {
         var error = Assert.Throws<FormatException>(() => NeoForgeVersionMapper.MapMinecraftVersion(name));

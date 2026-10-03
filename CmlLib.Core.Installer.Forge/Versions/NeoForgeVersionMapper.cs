@@ -15,6 +15,19 @@ public static class NeoForgeVersionMapper
         if (name.StartsWith("neoforge-", StringComparison.Ordinal))
             name = name.Substring("neoforge-".Length);
 
+        // Special snapshot releases use 0.<Minecraft snapshot ID>.<loader build>.
+        if (name.StartsWith("0.", StringComparison.Ordinal))
+        {
+            var snapshotParts = name.Split('.');
+            if (snapshotParts.Length >= 3 && snapshotParts[1].Any(char.IsLetter))
+            {
+                var build = new string(snapshotParts[2].TakeWhile(char.IsDigit).ToArray());
+                if (int.TryParse(build, out _))
+                    return snapshotParts[1];
+            }
+            throw new FormatException($"Cannot map NeoForge version '{originalName}' to a Minecraft version.");
+        }
+
         var numberLength = 0;
         while (numberLength < name.Length &&
             ((name[numberLength] >= '0' && name[numberLength] <= '9') || name[numberLength] == '.'))
