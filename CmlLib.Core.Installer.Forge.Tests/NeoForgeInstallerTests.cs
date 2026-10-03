@@ -30,6 +30,8 @@ public sealed class NeoForgeInstallerTests : IDisposable
     }
 
     [Theory]
+    [InlineData("1.20.2", "1.20.2", "20.2.88", false)]
+    [InlineData("26.1.2", "26.1.2", "26.1.2.114-preview+build.2", false)]
     [InlineData("1.21.1", "1.21.1", "21.1.100", false)]
     [InlineData("1.21.0", "1.21", "21.0.167", false)]
     [InlineData("26.1.0", "26.1", "26.1.0.19-beta", false)]
@@ -47,9 +49,13 @@ public sealed class NeoForgeInstallerTests : IDisposable
         var installer = new NeoForgeInstaller(launcher, http);
         var options = new ForgeInstallOptions { JavaPath = "chosen-java", SkipIfAlreadyInstalled = false };
 
-        var result = await installer.Install(new NeoForgeVersion(minecraft, neoForge), options);
+        var version = new NeoForgeVersion(minecraft, neoForge);
+        var result = await installer.Install(version, options);
 
         Assert.Equal(id, result);
+        Assert.Equal(new NeoForgeVersion(minecraft, neoForge), version);
+        Assert.Equal($"https://maven.neoforged.net/releases/net/neoforged/neoforge/{neoForge}/neoforge-{neoForge}-installer.jar",
+            Assert.IsType<FixtureInstaller>(launcher.GameInstaller).InstallerUrl);
         // Vanilla files are processed before the installer; profile libraries follow it.
         Assert.Equal(new[] { "files", "loader", "files" }, calls);
         Assert.True(launcher.Versions!.TryGetVersionMetadata(id, out _));
@@ -142,6 +148,7 @@ public sealed class NeoForgeInstallerTests : IDisposable
     {
         private readonly List<string> _calls;
         private readonly string _versionId;
+        public string? InstallerUrl { get; private set; }
         public FixtureInstaller(List<string> calls, string versionId)
         {
             _calls = calls;
@@ -158,6 +165,7 @@ public sealed class NeoForgeInstallerTests : IDisposable
                 return ValueTask.CompletedTask;
             }
 
+            InstallerUrl = installerFile.Url;
             _calls.Add("loader");
             Directory.CreateDirectory(Path.GetDirectoryName(installerFile.Path!)!);
             using var zip = ZipFile.Open(installerFile.Path!, ZipArchiveMode.Create);

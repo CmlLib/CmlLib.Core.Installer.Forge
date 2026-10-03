@@ -1,4 +1,5 @@
 using CmlLib.Core.Installer.Forge;
+using CmlLib.Core.Installer.Forge.Installers;
 using CmlLib.Core.Installer.Forge.Versions;
 using CmlLib.Core.Installer.Forge.Internal;
 
@@ -6,12 +7,11 @@ namespace CmlLib.Core.Installer.NeoForge;
 
 /// <summary>
 /// Discovers NeoForge versions and prepares vanilla Minecraft/Java before installation.
-/// The NeoForge mapper creates ForgeV12Installer for the shared profile engine.
+/// Creates ForgeV12Installer from NeoForge version data for the shared profile engine.
 /// </summary>
 public class NeoForgeInstaller
 {
     private readonly NeoForgeVersionLoader _versionLoader;
-    private readonly NeoForgeInstallerVersionMapper _installerMapper;
     private readonly InstallerRunner _runner;
 
     public NeoForgeInstaller(MinecraftLauncher launcher) : this(launcher, HttpUtil.DefaultClient.Value)
@@ -21,7 +21,6 @@ public class NeoForgeInstaller
     public NeoForgeInstaller(MinecraftLauncher launcher, HttpClient httpClient)
     {
         _versionLoader = new NeoForgeVersionLoader(httpClient);
-        _installerMapper = new NeoForgeInstallerVersionMapper();
         _runner = new InstallerRunner(launcher);
     }
 
@@ -54,7 +53,15 @@ public class NeoForgeInstaller
 
     public Task<string> Install(NeoForgeVersion neoForgeVersion, ForgeInstallOptions options)
     {
-        var installer = _installerMapper.CreateInstaller(neoForgeVersion);
-        return _runner.Install(installer.VersionArtifact.MinecraftVersion, installer, options);
+        var minecraftVersion = NeoForgeVersionMapper.NormalizeMinecraftVersion(neoForgeVersion.MinecraftVersionName);
+        var loaderVersion = neoForgeVersion.NeoForgeVersionName;
+        var artifact = new ForgeV12VersionArtifact(
+            MinecraftVersion: minecraftVersion,
+            LoaderVersion: loaderVersion,
+            VersionName: $"neoforge-{loaderVersion}",
+            InstallerUrl: $"https://maven.neoforged.net/releases/net/neoforged/neoforge/{loaderVersion}/neoforge-{loaderVersion}-installer.jar",
+            EmbeddedVersionJar: null);
+        var installer = new ForgeV12Installer(artifact);
+        return _runner.Install(minecraftVersion, installer, options);
     }
 }

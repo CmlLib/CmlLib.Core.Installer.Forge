@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace CmlLib.Core.Installer.Forge.Installers;
 
-/* 1.7.10 - 1.11.2 */
+/* 1.12 ~ */
 public class ForgeV12Installer : IForgeInstaller
 {
     public ForgeV12Installer(ForgeV12VersionArtifact artifact)
