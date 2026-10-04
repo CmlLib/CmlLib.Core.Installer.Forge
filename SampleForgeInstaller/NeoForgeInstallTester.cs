@@ -2,11 +2,13 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.Json;
 using CmlLib.Core;
+using CmlLib.Core.Auth;
 using CmlLib.Core.FileExtractors;
 using CmlLib.Core.Installer.Forge;
 using CmlLib.Core.Installer.Forge.Versions;
 using CmlLib.Core.Installer.NeoForge;
 using CmlLib.Core.Installers;
+using CmlLib.Core.ProcessBuilder;
 
 namespace SampleForgeInstaller;
 
@@ -62,16 +64,22 @@ internal sealed class NeoForgeInstallTester
         if (args.Contains("--plan-only"))
             return 0;
 
-        // Install vanilla client/libraries/Java required by processors, without game assets.
-        var parameters = MinecraftLauncherParameters.CreateDefault(new MinecraftPath(cache), http);
-        var extractors = DefaultFileExtractors.CreateDefault(http, parameters.RulesEvaluator!, parameters.JavaPathResolver!);
-        extractors.Asset = null;
-        extractors.Log = null;
-        parameters.FileExtractors = extractors.ToExtractorCollection();
-        var launcher = new MinecraftLauncher(parameters);
-        var installer = new NeoForgeInstaller(launcher, http);
-        var results = new List<InstallationResult>();
+        // Each target gets its own game, versions, and libraries directories.
+        // Assets and Java runtimes are shared from the cache.
+        var sharedPath = new MinecraftPath(cache);
         var reportPath = Path.Combine(output, "installation-results.json");
+        var priorResults = resume && File.Exists(reportPath)
+            ? JsonSerializer.Deserialize<InstallationResult[]>(await File.ReadAllTextAsync(reportPath)) ?? Array.Empty<InstallationResult>()
+            : Array.Empty<InstallationResult>();
+        var completedVersions = priorResults
+            .Where(result => result.Status == "passed")
+            .Select(result => result.MinecraftVersion)
+            .ToHashSet(StringComparer.Ordinal);
+        targets = targets.Where(target => !completedVersions.Contains(target.MinecraftVersionName)).ToArray();
+        var scheduledVersions = targets.Select(target => target.MinecraftVersionName).ToHashSet(StringComparer.Ordinal);
+        var results = priorResults
+            .Where(result => !scheduledVersions.Contains(result.MinecraftVersion))
+            .ToList();
 
         foreach (var target in targets)
         {
@@ -85,6 +93,14 @@ internal sealed class NeoForgeInstallTester
             Console.WriteLine($"START {folderName}");
             try
             {
+                var gamePath = new MinecraftPath(directory)
+                {
+                    Assets = sharedPath.Assets,
+                    Runtime = sharedPath.Runtime
+                };
+                var parameters = MinecraftLauncherParameters.CreateDefault(gamePath, http);
+                var launcher = new MinecraftLauncher(parameters);
+                var installer = new NeoForgeInstaller(launcher, http);
                 var id = await installer.Install(target, new ForgeInstallOptions
                 {
                     JavaPath = java,
@@ -96,18 +112,19 @@ internal sealed class NeoForgeInstallTester
                         log.WriteLine(line);
                     })
                 });
-                // Complete libraries declared by version.json before checking generated artifacts.
+                // Complete all game files and Java runtime before launching.
                 await launcher.InstallAsync(id);
-                var libraryCount = await ValidateAndExportAsync(cache, directory, target, id);
+                var libraryCount = await ValidateInstalledAsync(directory, target, id);
+                var startupMarker = await LaunchAndConfirmStartupAsync(launcher, id, log);
                 results.Add(new(target.MinecraftVersionName, target.NeoForgeVersionName, "passed", directory,
-                    libraryCount, timer.Elapsed.TotalSeconds, null));
-                Console.WriteLine($"PASS {folderName} ({libraryCount} libraries, {timer.Elapsed.TotalSeconds:F1}s)");
+                    libraryCount, timer.Elapsed.TotalSeconds, startupMarker, null));
+                Console.WriteLine($"PASS {folderName} ({libraryCount} libraries; startup: {startupMarker}; {timer.Elapsed.TotalSeconds:F1}s)");
             }
             catch (Exception error)
             {
                 log.WriteLine(error);
                 results.Add(new(target.MinecraftVersionName, target.NeoForgeVersionName, "failed", directory,
-                    0, timer.Elapsed.TotalSeconds, error.ToString()));
+                    0, timer.Elapsed.TotalSeconds, null, error.ToString()));
                 Console.WriteLine($"FAIL {folderName}: {error.Message} (see {logPath})");
             }
             await File.WriteAllTextAsync(reportPath, JsonSerializer.Serialize(results, JsonOptions));
@@ -118,10 +135,10 @@ internal sealed class NeoForgeInstallTester
         return failed == 0 ? 0 : 1;
     }
 
-    private static async Task<int> ValidateAndExportAsync(
-        string cache, string output, NeoForgeVersion target, string installedId)
+    private static async Task<int> ValidateInstalledAsync(
+        string gameDirectory, NeoForgeVersion target, string installedId)
     {
-        var versionDirectory = Path.Combine(cache, "versions", installedId);
+        var versionDirectory = Path.Combine(gameDirectory, "versions", installedId);
         var jsonPath = Path.Combine(versionDirectory, installedId + ".json");
         using var document = JsonDocument.Parse(await File.ReadAllTextAsync(jsonPath));
         var root = document.RootElement;
@@ -152,7 +169,7 @@ internal sealed class NeoForgeInstallTester
         // Check every declared loader library, including processor-generated jars.
         foreach (var (relative, hash) in files)
         {
-            var source = ResolvePath(Path.Combine(cache, "libraries"), relative);
+            var source = ResolvePath(Path.Combine(gameDirectory, "libraries"), relative);
             if (!File.Exists(source) || new FileInfo(source).Length == 0)
                 throw new FileNotFoundException("NeoForge runtime library is missing or empty.", source);
             if (!string.IsNullOrEmpty(hash))
@@ -164,12 +181,65 @@ internal sealed class NeoForgeInstallTester
                     throw new InvalidDataException($"Library checksum mismatch: {source}");
             }
         }
-        foreach (var relative in files.Keys)
-            CopyFile(ResolvePath(Path.Combine(cache, "libraries"), relative),
-                ResolvePath(Path.Combine(output, "libraries"), relative));
-        foreach (var file in Directory.EnumerateFiles(versionDirectory, "*", SearchOption.AllDirectories))
-            CopyFile(file, ResolvePath(Path.Combine(output, "versions", installedId), Path.GetRelativePath(versionDirectory, file)));
         return files.Count;
+    }
+
+    private static async Task<string> LaunchAndConfirmStartupAsync(
+        MinecraftLauncher launcher, string installedId, TextWriter log)
+    {
+        var process = await launcher.BuildProcessAsync(installedId, new MLaunchOption
+        {
+            Session = MSession.CreateOfflineSession("NeoForgeTester"),
+            MaximumRamMb = 3072
+        });
+        var startup = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var wrapper = new ProcessWrapper(process);
+        wrapper.OutputReceived += (_, line) =>
+        {
+            log.WriteLine(line);
+            if (line.Contains("Sound engine started", StringComparison.OrdinalIgnoreCase) ||
+                line.Contains("Started SoundEngine", StringComparison.OrdinalIgnoreCase))
+                startup.TrySetResult(ExtractLogMessage(line));
+        };
+        wrapper.StartWithEvents();
+
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(90));
+        var exited = process.WaitForExitAsync();
+        var completed = await Task.WhenAny(startup.Task, exited, Task.Delay(Timeout.Infinite, timeout.Token));
+        if (completed == startup.Task)
+        {
+            var marker = await startup.Task;
+            if (!process.HasExited)
+                process.Kill(entireProcessTree: true);
+            await process.WaitForExitAsync();
+            return marker;
+        }
+
+        if (completed == exited)
+        {
+            var exitCode = process.ExitCode;
+            if (startup.Task.IsCompletedSuccessfully)
+                return startup.Task.Result;
+            throw new InvalidOperationException($"Minecraft exited with code {exitCode} before the startup marker.");
+        }
+
+        process.Kill(entireProcessTree: true);
+        await process.WaitForExitAsync();
+        throw new TimeoutException("Minecraft did not reach the sound-engine startup marker within 90 seconds.");
+    }
+
+    private static string ExtractLogMessage(string line)
+    {
+        const string cdataStart = "<![CDATA[";
+        var start = line.IndexOf(cdataStart, StringComparison.Ordinal);
+        if (start >= 0)
+        {
+            start += cdataStart.Length;
+            var end = line.IndexOf("]]>", start, StringComparison.Ordinal);
+            if (end >= 0)
+                return line[start..end].Trim();
+        }
+        return line.Trim();
     }
 
     private static string ResolvePath(string root, string relative)
@@ -179,12 +249,6 @@ internal sealed class NeoForgeInstallTester
         if (!fullPath.StartsWith(fullRoot, StringComparison.Ordinal))
             throw new InvalidDataException($"Path escapes its directory: {relative}");
         return fullPath;
-    }
-
-    private static void CopyFile(string source, string target)
-    {
-        Directory.CreateDirectory(Path.GetDirectoryName(target)!);
-        File.Copy(source, target, overwrite: true);
     }
 
     private static string? GetOption(string[] args, string option)
@@ -198,5 +262,5 @@ internal sealed class NeoForgeInstallTester
     }
 
     private sealed record InstallationResult(string MinecraftVersion, string NeoForgeVersion, string Status,
-        string Directory, int LibraryCount, double ElapsedSeconds, string? Error);
+        string Directory, int LibraryCount, double ElapsedSeconds, string? StartupMarker, string? Error);
 }
