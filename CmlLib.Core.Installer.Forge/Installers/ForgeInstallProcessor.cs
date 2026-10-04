@@ -1,5 +1,5 @@
 ﻿using CmlLib.Core.Installers;
-using CmlLib.Core.ProcessBuilder;
+using CmlLib.Core.Installer.Forge.Internal;
 using CmlLib.Utils;
 using System.Diagnostics;
 using System.Text;
@@ -17,13 +17,15 @@ public class ForgeInstallProcessor
     }
 
     public async Task MapAndStartProcessors(
-        string installerDir, 
+        string installerDir,
         string vanillaJarPath,
         string libraryPath,
         JsonElement installProfile,
         IProgress<InstallerProgressChangedEventArgs>? progress,
-        IProgress<string>? processorOutput)
+        IProgress<string>? processorOutput,
+        CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         Dictionary<string, string?> mapData;
         if (installProfile.TryGetProperty("data", out var dataProp))
             mapData = MapProcessorData(dataProp, vanillaJarPath, libraryPath, installerDir);
@@ -31,7 +33,7 @@ public class ForgeInstallProcessor
             mapData = new();
 
         if (installProfile.TryGetProperty("processors", out var processorsProp))
-            await StartProcessors(processorsProp, mapData, libraryPath, progress, processorOutput);
+            await StartProcessors(processorsProp, mapData, libraryPath, progress, processorOutput, cancellationToken);
     }
 
     public Dictionary<string, string?> MapProcessorData(
@@ -65,12 +67,14 @@ public class ForgeInstallProcessor
     }
 
     public async Task StartProcessors(
-        JsonElement processors, 
-        Dictionary<string, string?> mapData, 
+        JsonElement processors,
+        Dictionary<string, string?> mapData,
         string libraryPath,
         IProgress<InstallerProgressChangedEventArgs>? fileProgress,
-        IProgress<string>? processorOutput)
+        IProgress<string>? processorOutput,
+        CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         if (processors.ValueKind != JsonValueKind.Array)
             return;
 
@@ -78,6 +82,7 @@ public class ForgeInstallProcessor
         var progressed = 0;
         foreach (var processor in processors.EnumerateArray())
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var name = processor.GetPropertyValue("jar");
             fileProgress?.Report(new InstallerProgressChangedEventArgs(count, progressed, name, InstallerEventType.Queued));
 
@@ -91,11 +96,13 @@ public class ForgeInstallProcessor
                 true;
 
             if (!isProcessed && isClientSide)
-                await startProcessor(processor, mapData, libraryPath, processorOutput);
+                await startProcessor(processor, mapData, libraryPath, processorOutput, cancellationToken);
 
+            cancellationToken.ThrowIfCancellationRequested();
             progressed++;
             fileProgress?.Report(new InstallerProgressChangedEventArgs(count, progressed, name, InstallerEventType.Done));
         }
+        cancellationToken.ThrowIfCancellationRequested();
     }
 
     private bool checkProcessorOutputs(JsonElement outputs, Dictionary<string, string?> mapData)
@@ -135,8 +142,10 @@ public class ForgeInstallProcessor
         JsonElement processor, 
         Dictionary<string, string?> mapData, 
         string libraryPath,
-        IProgress<string>? processorOutput)
+        IProgress<string>? processorOutput,
+        CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         string? name = null;
         if (processor.TryGetProperty("jar", out var jarProp) && jarProp.ValueKind == JsonValueKind.String)
             name = jarProp.GetString();
@@ -181,14 +190,15 @@ public class ForgeInstallProcessor
             args = ForgeMapper.Map(arrStrs, mapData, libraryPath, Path.DirectorySeparatorChar);
         }
 
-        await startJava(classpath, mainClass, args, processorOutput);
+        await startJava(classpath, mainClass, args, processorOutput, cancellationToken);
     }
 
     private async Task startJava(
         IEnumerable<string> classpath, 
         string mainClass, 
         IEnumerable<string> args, 
-        IProgress<string>? javaOutput)
+        IProgress<string>? javaOutput,
+        CancellationToken cancellationToken)
     {
         var argBuilder = new StringBuilder();
         argBuilder.Append("-cp ");
@@ -201,18 +211,15 @@ public class ForgeInstallProcessor
             argBuilder.Append(arg);
         }
 
-        var process = new Process();
+        using var process = new Process();
         process.StartInfo = new ProcessStartInfo()
         {
             FileName = _javaPath,
             Arguments = argBuilder.ToString(),
         };
 
-        var p = new ProcessWrapper(process);
-        p.OutputReceived += (s, e) => javaOutput?.Report(e);
-        p.StartWithEvents();
-        await p.WaitForExitTaskAsync();
-        if (process.ExitCode != 0)
-            throw new InvalidOperationException($"Installer processor {mainClass} exited with code {process.ExitCode}.");
+        var exitCode = await InstallerProcessRunner.Run(process, javaOutput, cancellationToken);
+        if (exitCode != 0)
+            throw new InvalidOperationException($"Installer processor {mainClass} exited with code {exitCode}.");
     }
 }

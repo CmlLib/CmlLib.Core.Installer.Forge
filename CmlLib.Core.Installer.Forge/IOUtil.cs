@@ -57,17 +57,19 @@ internal static class IOUtil
             }));
     }
 
-    public static async Task CopyDirectory(string org, string des)
+    public static async Task CopyDirectory(string org, string des, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var dir = new DirectoryInfo(org);
         if (!dir.Exists)
             return;
 
-        await copyDirectoryFiles(org, des, "");
+        await copyDirectoryFiles(org, des, "", cancellationToken);
     }
 
-    private static async Task copyDirectoryFiles(string org, string des, string path)
+    private static async Task copyDirectoryFiles(string org, string des, string path, CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var orgpath = Path.Combine(org, path);
         var orgdir = new DirectoryInfo(orgpath);
 
@@ -78,7 +80,7 @@ internal static class IOUtil
         foreach (var dir in orgdir.GetDirectories("*", SearchOption.TopDirectoryOnly))
         {
             var innerpath = Path.Combine(path, dir.Name);
-            await copyDirectoryFiles(org, des, innerpath);
+            await copyDirectoryFiles(org, des, innerpath, cancellationToken);
         }
 
         foreach (var file in orgdir.GetFiles("*", SearchOption.TopDirectoryOnly))
@@ -86,7 +88,7 @@ internal static class IOUtil
             var innerpath = Path.Combine(path, file.Name);
             var desfile = Path.Combine(des, innerpath);
 
-            await CopyFileAsync(file.FullName, desfile);
+            await CopyFileAsync(file.FullName, desfile, cancellationToken);
         }
     }
 
@@ -114,10 +116,40 @@ internal static class IOUtil
         }
     }
 
-    public static async Task CopyFileAsync(string source, string target)
+    public static async Task CopyFileAsync(string source, string target, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         using var sourceFile = File.OpenRead(source);
         using var targetFile = File.Create(target);
-        await sourceFile.CopyToAsync(targetFile);
+        await sourceFile.CopyToAsync(targetFile, 81920, cancellationToken);
+    }
+
+    public static async Task CopyFileAtomicAsync(string source, string target, CancellationToken cancellationToken)
+    {
+        var temporaryPath = target + "." + Path.GetRandomFileName();
+        try
+        {
+            await CopyFileAsync(source, temporaryPath, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (File.Exists(target))
+                File.Replace(temporaryPath, target, null);
+            else
+                File.Move(temporaryPath, target);
+        }
+        finally
+        {
+            try
+            {
+                File.Delete(temporaryPath);
+            }
+            catch (IOException error)
+            {
+                System.Diagnostics.Debug.WriteLine(error);
+            }
+            catch (UnauthorizedAccessException error)
+            {
+                System.Diagnostics.Debug.WriteLine(error);
+            }
+        }
     }
 }

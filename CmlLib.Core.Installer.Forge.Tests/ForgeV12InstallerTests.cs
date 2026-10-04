@@ -58,10 +58,52 @@ public sealed class ForgeV12InstallerTests : IDisposable
         Assert.False(File.Exists(path.GetVersionJarPath(installer.VersionName)));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task CancellationAfterProcessorsDoesNotPublishVersionMetadata(bool alreadyInstalled)
+    {
+        var path = new MinecraftPath(_root);
+        var artifact = new ForgeV12VersionArtifact("1.21.1", "21.1.100", "fixture", "https://example.com/installer.jar", null);
+        var jsonPath = path.GetVersionJsonPath(artifact.VersionName);
+        if (alreadyInstalled)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(jsonPath)!);
+            File.WriteAllText(jsonPath, "previous version metadata");
+        }
+        var downloader = new FixtureInstaller("maven/fixture.jar",
+            "{\"libraries\":[],\"processors\":[{\"jar\":\"fixture:processor:1\",\"outputs\":{}}]}");
+        using var cancellation = new CancellationTokenSource();
+        var options = new ForgeInstallOptions
+        {
+            JavaPath = "unused-java",
+            CancellationToken = cancellation.Token,
+            FileProgress = new InlineProgress<InstallerProgressChangedEventArgs>(progress =>
+            {
+                if (progress.EventType == InstallerEventType.Done)
+                    cancellation.Cancel();
+            })
+        };
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            new ForgeV12Installer(artifact).Install(path, downloader, options));
+
+        if (alreadyInstalled)
+            Assert.Equal("previous version metadata", File.ReadAllText(jsonPath));
+        else
+            Assert.False(File.Exists(jsonPath));
+        Assert.False(Directory.Exists(Path.GetDirectoryName(downloader.Download!.Path)));
+    }
+
     private sealed class FixtureInstaller : IGameInstaller
     {
         private readonly string _embeddedJar;
-        public FixtureInstaller(string embeddedJar) => _embeddedJar = embeddedJar;
+        private readonly string _profile;
+        public FixtureInstaller(string embeddedJar, string profile = "{\"libraries\":[]}")
+        {
+            _embeddedJar = embeddedJar;
+            _profile = profile;
+        }
         public GameFile? Download { get; private set; }
 
         public ValueTask Install(IEnumerable<GameFile> files, IProgress<InstallerProgressChangedEventArgs>? fileProgress,
@@ -72,7 +114,7 @@ public sealed class ForgeV12InstallerTests : IDisposable
                 Download = file;
                 Directory.CreateDirectory(Path.GetDirectoryName(file.Path!)!);
                 using var zip = ZipFile.Open(file.Path!, ZipArchiveMode.Create);
-                Write(zip, "install_profile.json", "{\"libraries\":[]}");
+                Write(zip, "install_profile.json", _profile);
                 Write(zip, "version.json", "fixture-json");
                 Write(zip, _embeddedJar, "fixture-jar");
             }

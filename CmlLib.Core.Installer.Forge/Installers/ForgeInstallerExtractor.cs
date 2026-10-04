@@ -2,6 +2,7 @@ using CmlLib.Core.Files;
 using CmlLib.Core.Installer.Forge.Versions;
 using CmlLib.Core.Installers;
 using ICSharpCode.SharpZipLib.Zip;
+using System.Diagnostics;
 
 namespace CmlLib.Core.Installer.Forge.Installers;
 
@@ -70,6 +71,7 @@ public class ForgeInstallerExtractor : IDisposable
         string installerFileName,
         string? installerUrl)
     {
+        options.CancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrEmpty(installerUrl))
             throw new InvalidOperationException("The forge version doesn't have installer url");
 
@@ -83,11 +85,21 @@ public class ForgeInstallerExtractor : IDisposable
             Hash = "",
         };
 
-        await installer.Install([file], options.FileProgress, options.ByteProgress, options.CancellationToken);
-
-        var zip = new FastZip();
-        zip.ExtractZip(installerPath, installDir, null);
-        return new ForgeInstallerExtractor(installDir);
+        var extractor = new ForgeInstallerExtractor(installDir);
+        try
+        {
+            await installer.Install([file], options.FileProgress, options.ByteProgress, options.CancellationToken);
+            options.CancellationToken.ThrowIfCancellationRequested();
+            var zip = new FastZip();
+            zip.ExtractZip(installerPath, installDir, null);
+            options.CancellationToken.ThrowIfCancellationRequested();
+            return extractor;
+        }
+        catch
+        {
+            extractor.Dispose();
+            throw;
+        }
     }
 
     private ForgeInstallerExtractor(string dir)
@@ -109,15 +121,21 @@ public class ForgeInstallerExtractor : IDisposable
 
     protected virtual void Dispose(bool disposing)
     {
-        if (!disposedValue)
-        {
-            if (disposing)
-            {
-                // managed objects
-            }
+        if (disposedValue)
+            return;
 
+        disposedValue = true;
+        try
+        {
             Directory.Delete(ExtractedDir, true);
-            disposedValue = true;
+        }
+        catch (IOException error)
+        {
+            Debug.WriteLine(error);
+        }
+        catch (UnauthorizedAccessException error)
+        {
+            Debug.WriteLine(error);
         }
     }
 
@@ -128,7 +146,13 @@ public class ForgeInstallerExtractor : IDisposable
 
     public void Dispose()
     {
-        Dispose(disposing: true);
-        GC.SuppressFinalize(this);
+        try
+        {
+            Dispose(disposing: true);
+        }
+        finally
+        {
+            GC.SuppressFinalize(this);
+        }
     }
 }

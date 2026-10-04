@@ -14,26 +14,31 @@ internal sealed class InstallerRunner
         ForgeInstallOptions options,
         Action? afterInstall = null)
     {
-        if (options.SkipIfAlreadyInstalled && await IsVersionInstalled(installer.VersionName))
+        var cancellationToken = options.CancellationToken;
+        cancellationToken.ThrowIfCancellationRequested();
+        if (options.SkipIfAlreadyInstalled && await IsVersionInstalled(installer.VersionName, cancellationToken))
             return installer.VersionName;
 
-        var version = await _launcher.GetVersionAsync(minecraftVersion);
-        await _launcher.InstallAsync(version, options.FileProgress, options.ByteProgress);
+        var version = await _launcher.GetVersionAsync(minecraftVersion, cancellationToken);
+        await _launcher.InstallAsync(version, options.FileProgress, options.ByteProgress, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
 
         if (string.IsNullOrEmpty(options.JavaPath))
-            options.JavaPath = GetJavaPath(version);
+            options = options.WithJavaPath(GetJavaPath(version));
 
         await installer.Install(_launcher.MinecraftPath, _launcher.GameInstaller, options);
+        cancellationToken.ThrowIfCancellationRequested();
         afterInstall?.Invoke();
-        await _launcher.GetAllVersionsAsync();
+        await _launcher.GetAllVersionsAsync(cancellationToken);
         return installer.VersionName;
     }
 
-    private async Task<bool> IsVersionInstalled(string versionName)
+    private async Task<bool> IsVersionInstalled(string versionName, CancellationToken cancellationToken)
     {
         try
         {
-            await _launcher.GetVersionAsync(versionName);
+            await _launcher.GetVersionAsync(versionName, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
             return true;
         }
         catch (KeyNotFoundException)

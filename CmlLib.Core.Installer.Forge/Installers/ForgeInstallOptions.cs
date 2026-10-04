@@ -13,4 +13,11 @@ public class ForgeInstallOptions
     public IProgress<string>? InstallerOutput { get; set; }
     public CancellationToken CancellationToken { get; set; }
     public bool SkipIfAlreadyInstalled { get; set; } = true;
+
+    internal ForgeInstallOptions WithJavaPath(string javaPath)
+    {
+        var copy = (ForgeInstallOptions)MemberwiseClone();
+        copy.JavaPath = javaPath;
+        return copy;
+    }
 }
